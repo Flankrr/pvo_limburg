@@ -6,9 +6,6 @@
 #  We sum up the votes per country, then return country, country_score,
 #  and evidence (matched city, postal code, etc.) and finally produce a country probability.
 #  If the probability score is less than the threshold, then it gets marked “uncertain”.
-# 
-#  For these uncertain articles(IF they increase in number as we keep on collecting data), 
-#  we can train a small disambiguation model(logistic regression (maybe?)) to review them.
 #  
 # The methods on this file(filtering) are used BEFORE the word-tokenization step at the pre-processing file. ##
 
@@ -67,8 +64,32 @@ gazetteer = {}
 for g in (nl_gaz, be_gaz, de_gaz):
     gazetteer.update(g)
 
-print("Total entries in gazetteer:", len(gazetteer))
-print(list(gazetteer.items())[:20]) # peek
+# print("Total entries in gazetteer:", len(gazetteer))
+# print(list(gazetteer.items())[:20]) # peek
+## -------------------------------------------------------------- ##
+
+# Load trained logistic regression location classifier
+import joblib
+import pandas as pd
+from location_classifier import extract_features
+try:
+    bundle = joblib.load("models/location_classifier_latest.pkl")
+    clf = bundle["model"]
+    feature_cols = bundle["feature_columns"]
+    print("✅ Loaded location classifier model.")
+except Exception as e:
+    clf = None
+    feature_cols = []
+    print("⚠️ Warning: location classifier not found or failed to load:", e)
+
+
+def is_likely_location(word, threshold=0.5):
+    """Check if a word is likely a real location."""
+    if not clf:
+        return True  # fallback if model missing
+    feat = pd.DataFrame([extract_features(word)])[feature_cols]
+    prob = clf.predict_proba(feat)[0, 1]
+    return prob > threshold
 ## -------------------------------------------------------------- ##
 
 ## This is the voting method to know if the places mentioned in the articles are around the NL/BE/DE or not. ##
@@ -144,11 +165,20 @@ def build_geo_df(json_path="nos_articles.json", min_conf=0.6):
     # 3) Detect candidate locations for all articles:
     df["locations"] = df["clean_geo"].apply(detect_candidate_locations)
 
-    # 4) Get the voting per article:
+    # 4) Filter out non-location words from detected locations using the logistic-regression model:
+    def filter_predicted_locations(locs):
+        if not isinstance(locs, list):
+            return []
+        return [loc for loc in locs if is_likely_location(loc)]
+    
+    df["locations"] = df["locations"].apply(filter_predicted_locations)
+    print("[geo_filter] Filtered non-location terms from locations column.")
+
+    # 5) Get the voting per article:
     results = df["locations"].apply(lambda locs: voting_country_from_locations(locs, gazetteer))
     df[["country", "country_score", "country_evidence"]] = pd.DataFrame(results.tolist(), index=df.index)
 
-    # 5) Filter only the rows around the region:
+    # 6) Filter only the rows around the region:
     return filtering_articles_by_country(df, min_conf=min_conf)
 ## -------------------------------------------------------------- ##
 

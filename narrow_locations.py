@@ -18,6 +18,9 @@
 # It returns returns a list of integer positions, where each number is the character index in the text
 # where a business or crime keyword starts.
 # To identify these business-related and crime-related we use the same keywords from the LFs in sme_filter.py file.
+# After implementing a named entity recognition file for detecting Dutch SMEs, than we should add that to the business
+# and crime terms here.
+
 import re
 
 def find_context_word_positions(text):
