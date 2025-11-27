@@ -235,7 +235,7 @@ train_df["keywords"] = [
 
 # Save results to a new JSON file
 train_df.to_json(
-    "keywords/all_articles_keywords.json",
+    "keywords/all_articles_keywords_NEW.json",
     orient="records",
     indent=2,
     force_ascii=False,

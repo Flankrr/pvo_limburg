@@ -156,7 +156,7 @@ def lf_sme_cybercrime(x):
     return SME if re.search(
         r"\b(mkb|bedrijf|ondernemer|zaak|organisatie)\b", text
     ) and re.search(
-        r"\b(cyber|digitale|phishing|ransomware|hack|veiligheid|weerbaarheid|cybercrime)\b", text
+        r"\b(cyber|digitale|phishing|ransomware|hack|veiligheid|weerbaarheid|cybercrime|bruteforce-aanval)\b", text
     ) else ABSTAIN
 
 
@@ -187,14 +187,25 @@ def lf_bankruptcy_only(x):
     return ABSTAIN
 
 
-
 ## -------------------------------------------------------------- ##
+
+def detect_crime_signal(row):
+    # Only consider LFs that indicate SME-related crime
+    crime_lfs = [
+        lf_business_crime,
+        lf_sme_cybercrime,
+    ]
+    for lf in crime_lfs:
+        if lf(row) == SME:
+            return 1
+    return 0
 
 ## This function applies the whole weak supervision pipeline. ##
 def run_snorkel(df, lfs=None, min_conf=0.6):
     """
     Apply Snorkel LabelModel using defined labeling functions.
     Adds `sme_probability` and `sme_label` columns to df.
+    Only keeps articles with a crime signal for labeling positive.
     """
     if lfs is None:
         lfs = [
@@ -203,7 +214,7 @@ def run_snorkel(df, lfs=None, min_conf=0.6):
     lf_general_sector_terms,
     lf_generic_entrepreneurship,
     # lf_international_politics,
-    lf_accidents_crime,
+    # lf_accidents_crime,
     lf_politics_domestic,
     lf_sme_cybercrime,
     lf_sports_entertainment,
@@ -226,7 +237,16 @@ def run_snorkel(df, lfs=None, min_conf=0.6):
     # 3) Get probabilistic labels:
     probs = label_model.predict_proba(L=L)  # shape (n,2)
     df["sme_probability"] = probs[:, 1]
-    df["sme_label"] = (df["sme_probability"] >= min_conf).astype(int)
+
+    # 4) Detect crime signal
+    df["crime_signal"] = df.apply(detect_crime_signal, axis=1)
+
+    # 5) Adaptive labeling: only keep positive if crime_signal==1
+    CRIME_THRESHOLD = 0.05  # lower threshold for crime articles
+    df["sme_label"] = df.apply(
+        lambda row: 1 if row["crime_signal"] == 1 and row["sme_probability"] >= CRIME_THRESHOLD else 0,
+        axis=1
+    )
 
     return df, label_model
 ## -------------------------------------------------------------- ##
