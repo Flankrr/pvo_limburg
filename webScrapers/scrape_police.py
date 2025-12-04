@@ -1,7 +1,8 @@
 import requests
 import json
 from bs4 import BeautifulSoup
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+import time
 
 
 BASE_URL = "https://api.politie.nl/v4/nieuws"
@@ -17,11 +18,14 @@ def convert_article(old):
     # --- extract and clean full text ---
     paragraphs = []
 
-    for alinea in old.get("alineas", []):
-        html = alinea.get("opgemaaktetekst", "")
-        text = BeautifulSoup(html, "html.parser").get_text(separator=" ", strip=True)
-        if text:
-            paragraphs.append(text)
+    try:
+        for alinea in old.get("alineas", []):
+            html = alinea.get("opgemaaktetekst", "")
+            text = BeautifulSoup(html, "html.parser").get_text(separator=" ", strip=True)
+            if text:
+                paragraphs.append(text)
+    except:
+        paragraphs.append("")
 
     # one-line full text
     full_text = " ".join(paragraphs)
@@ -51,52 +55,55 @@ def convert_article(old):
 
 def fetch_news(from_date, to_date):
     all_items = []
-    offset = 0
-    max_items = 25  # allowed values: 10 or 25
 
-    while True:
-        params = {
-            "fromdate": from_date,
-            "todate": to_date,
-            "language": "nl",
-            "maxnumberofitems": max_items,
-            "offset": offset
-        }
+    start_date = datetime.strptime(from_date, "%Y%m%d")
+    end_date = datetime.strptime(to_date, "%Y%m%d")
+    increment = timedelta(days=15)
 
-        print(f"Requesting offset {offset}...")
-        response = requests.get(BASE_URL, params=params)
-        response.raise_for_status()
+    current_end = end_date
 
-        data = response.json()
+    while current_end >= start_date:
+        current_start = max(current_end - increment + timedelta(days=1), start_date)
+        offset = 0
+        max_items = 25
 
-        # If no results
-        if "nieuwsberichten" not in data or not data["nieuwsberichten"]:
-            print("No more results found.")
-            break
+        while True:
+            params = {
+                "fromdate": current_start.strftime("%Y%m%d"),
+                "todate": current_end.strftime("%Y%m%d"),
+                "language": "nl",
+                "maxnumberofitems": max_items,
+                "offset": offset
+            }
 
-        # Accumulate items
-        all_items.extend(data["nieuwsberichten"])
+            print(f"Requesting {params['fromdate']} to {params['todate']}, offset {offset}...")
+            response = requests.get(BASE_URL, params=params)
+            response.raise_for_status()
+            data = response.json()
 
-        # Check iterator to know if there's another page
-        iterator = data.get("iterator", {})
-        if iterator.get("last", True):
-            break  # This was the last page
+            # Correct key name
+            if "nieuwsberichten" not in data or not data["nieuwsberichten"]:
+                break
 
-        # Otherwise request next page
-        offset += max_items
+            all_items.extend(data["nieuwsberichten"])
 
-    # Save results
+            iterator = data.get("iterator", {})
+            if iterator.get("last", True):
+                break
+
+            offset += max_items
+
+        time.sleep(1)
+        current_end = current_start - timedelta(days=1)
+
     converted = [convert_article(item) for item in all_items]
-
     return converted
-    # with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-    #     json.dump(converted, f, ensure_ascii=False, indent=4)
 
 
 def scrape_1yr():
     today = datetime.today().strftime("%Y%m%d")
     one_year_before = datetime.today().replace(year=datetime.today().year - 1).strftime("%Y%m%d")
-
+    # one_year_before = "20251015"
     result = fetch_news(one_year_before, today)
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=4)
