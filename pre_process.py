@@ -10,23 +10,83 @@ from sme_filter import run_snorkel
 from narrow_locations import apply_location_narrowing
 from sector_classifier import add_sector_classification
 
+### >>> CACHING ADDED >>>
+import os
+import hashlib
+
+CACHE_FILE = "preprocess_cache.json"
+
+def load_cache():
+    if os.path.exists(CACHE_FILE):
+        with open(CACHE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def save_cache(cache):
+    with open(CACHE_FILE, "w", encoding="utf-8") as f:
+        json.dump(cache, f, ensure_ascii=False, indent=2)
+
+def make_article_id(article):
+    key = (article.get("title", "") + article.get("date", "")).encode("utf-8")
+    return hashlib.md5(key).hexdigest()
+### <<< END CACHING <<<
+
 
 with open("all_articles.json", "r", encoding="utf-8") as f:
     data = json.load(f)
 
-# We filter out the articles that are not from the region before pre-processing.
-df = build_geo_df("all_articles.json", min_conf=0.6)
+### >>> CACHING ADDED — WRAP EXPENSIVE PART >>>
+cache = load_cache()
+processed_rows = []
+new_cache_entries = {}
 
-# We filter out the articles that are not about SMEs before pre-processing.
-df, label_model = run_snorkel(df, min_conf=0.5)
+for art in data:
+    aid = make_article_id(art)
 
-sme_filtered = df[df["sme_probability"] > 0.6]
+    # Already cached → reuse
+    if aid in cache:
+        processed_rows.append(cache[aid])
+        continue
 
-# We narrow down the locations
-sme_filtered = apply_location_narrowing(sme_filtered)
+    # Save single article to temp JSON (build_geo_df requires a file path)
+    temp_path = "_cache_single.json"
+    with open(temp_path, "w", encoding="utf-8") as tf:
+        json.dump([art], tf, ensure_ascii=False, indent=2)
 
-# SECTOR CLASSIFICATION
-sme_filtered = add_sector_classification(sme_filtered)
+    # GEO FILTER
+    single_df = build_geo_df(temp_path, min_conf=0.6)
+    if len(single_df) == 0:
+        continue  # No geo info → skip article
+
+    # SME FILTER
+    single_df, _ = run_snorkel(single_df, min_conf=0.5)
+    single_df = single_df[single_df["sme_probability"] > 0.6]
+    if len(single_df) == 0:
+        continue  # Not an SME article → skip
+
+    # LOCATION NARROWING
+    if len(single_df) > 0:
+        single_df = apply_location_narrowing(single_df)
+
+    # SECTOR CLASSIFICATION
+    if len(single_df) > 0:
+        single_df = add_sector_classification(single_df)
+
+    # Keep result
+    if len(single_df) > 0:
+        result = single_df.to_dict(orient="records")[0]
+        new_cache_entries[aid] = result
+        processed_rows.append(result)
+
+# Save cache if new entries were added
+if new_cache_entries:
+    cache.update(new_cache_entries)
+    save_cache(cache)
+
+# Final filtered DataFrame (replaces original sme_filtered)
+sme_filtered = pd.DataFrame(processed_rows)
+### <<< END CACHING <<<
+
 
 print(sme_filtered)
 
@@ -185,7 +245,6 @@ stopword_list = stopwords.words('dutch')
 # (the split ensures each row already has a 'clean' field)
 corpus = [row["clean"] for row in news_ds["train"] if row.get("clean", "").strip()]
 
-# Build Bag-of-Words (BoW) representation
 # Build Bag-of-Words with stopword filtering
 vectorizer = CountVectorizer(
     max_features=10000,

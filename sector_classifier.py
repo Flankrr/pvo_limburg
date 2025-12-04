@@ -406,7 +406,10 @@ def add_sector_classification(df):
         print(f"\n🏢 Company-level classification:")
         print(f"  Articles with companies: {articles_with_companies} ({articles_with_companies/total_articles*100:.1f}%)")
         print(f"  Total companies found: {total_companies}")
-        print(f"  Companies classified: {total_companies_classified} ({total_companies_classified/total_companies*100:.1f}% of companies)")
+        if total_companies == 0:
+            print("  Companies classified: 0 (0.0% of companies)")
+        else:
+            print(f"  Companies classified: {total_companies_classified} ({total_companies_classified/total_companies*100:.1f}% of companies)")
         print(f"  Articles mentioning multiple sectors: {multi_sector_articles} ({multi_sector_articles/total_articles*100:.1f}%)")
         print(f"  Average companies per article: {total_companies/total_articles:.1f}")
     
