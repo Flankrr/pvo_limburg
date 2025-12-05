@@ -7,7 +7,8 @@ import folium
 from folium.plugins import HeatMap, MarkerCluster
 from datetime import datetime, date, timedelta
 import altair as alt
-
+from sector_classifier import add_sector_classification
+from html import escape as _e
 
 # streamlit run dashboard.py
 
@@ -18,6 +19,11 @@ def _rerun():
         st.rerun()
     except AttributeError:
         st.experimental_rerun()
+
+def _snippet(txt, n=220):
+    if not txt: return ""
+    s = " ".join(str(txt).split())
+    return (s[:n] + "…") if len(s) > n else s
 
 
 def _parse_to_date(x):
@@ -91,9 +97,17 @@ def _reset_all_filters(feed_options_all, _min_date, _max_date):
 
     #future
     st.session_state["selected_sectors"] = []
+    st.session_state["show_codes"] = False
     st.session_state["only_limburg"] = False
     st.session_state["highlight_dups"] = False
 
+
+#caching the sector of each article sector
+@st.cache_data(show_spinner=True)
+def _classify_all_articles(df_records):
+    df_local = pd.DataFrame(df_records)
+    out = add_sector_classification(df_local.copy())
+    return out.to_dict(orient="records")
 
 
 # all geoNames in Limburg
@@ -133,6 +147,10 @@ try:
 
     df = pd.json_normalize(data)
 
+    try:
+        df = pd.DataFrame(_classify_all_articles(df.to_dict(orient="records")))
+    except Exception as e:
+        st.warning(f"Sector classification skipped: {e}")
     # st.subheader(f"Data loaded from: `{FILE_PATH}`")
     # st.write(f"{len(df)} Articles")
 
@@ -151,6 +169,8 @@ try:
 
 
 
+
+
     #session-state defaults, global options for reset/presets
     feed_options_all = df["feed"].dropna().unique().tolist() if "feed" in df.columns else []
     if "published" in df.columns:
@@ -160,36 +180,47 @@ try:
     else:
         _min_date = _max_date = datetime.today().date()
 
+    st.session_state.setdefault("min_sme_probability", 0.0)
+    st.session_state.setdefault("selected_sectors", [])
+    st.session_state.setdefault("show_codes", False)
+    st.session_state.setdefault("highlight_dups", False)
+
+
     if "text_filter" not in st.session_state: st.session_state.text_filter = ""
     if "selected_feeds" not in st.session_state: st.session_state.selected_feeds = feed_options_all
     if "location_search" not in st.session_state: st.session_state.location_search = ""
     if "date_range" not in st.session_state: st.session_state.date_range = (_min_date, _max_date)
-    if "_pending_preset" in st.session_state:
-        p = st.session_state.pop("_pending_preset")
 
-        st.session_state.text_filter = p.get("text_filter", st.session_state.get("text_filter", ""))
-        st.session_state.selected_feeds = p.get("selected_feeds", st.session_state.get("selected_feeds", feed_options_all))
+    p = st.session_state.pop("_pending_preset", None)
+    if p:
+        st.session_state.text_filter     = p.get("text_filter",     st.session_state.get("text_filter", ""))
+        st.session_state.selected_feeds  = p.get("selected_feeds",  st.session_state.get("selected_feeds", feed_options_all))
         st.session_state.location_search = p.get("location_search", st.session_state.get("location_search", ""))
 
-        if "min_sme_probability" in p:
-            try:
-                st.session_state.min_sme_probability = float(p["min_sme_probability"])
-            except Exception:
-                pass
+        try:
+            st.session_state.min_sme_probability = float(
+                p.get("min_sme_probability", st.session_state.get("min_sme_probability", 0.0))
+            )
+        except Exception:
+            pass
+        st.session_state.show_codes     = bool(p.get("show_codes",     st.session_state.get("show_codes", False)))
+        st.session_state.highlight_dups = bool(p.get("highlight_dups", st.session_state.get("highlight_dups", False)))
 
-        if "selected_sectors" in p:
-            st.session_state.selected_sectors = p["selected_sectors"]
-        if "highlight_dups" in p:
-            st.session_state.highlight_dups = bool(p["highlight_dups"])
+        #lists
+        sel_secs = p.get("selected_sectors", st.session_state.get("selected_sectors", []))
+        st.session_state.selected_sectors = sel_secs if isinstance(sel_secs, list) else []
 
+        # date range
         dr = p.get("date_range", (_min_date, _max_date))
         if isinstance(dr, (list, tuple)) and len(dr) == 2:
             dr = (_parse_to_date(dr[0]), _parse_to_date(dr[1]))
         else:
             dr = (_min_date, _max_date)
-
-        st.session_state.date_range = dr
+        st.session_state["date_range"] = dr
         st.session_state["date_range_widget"] = dr
+
+
+
 
 
     #refresh + reset
@@ -310,6 +341,69 @@ try:
         filtered_df = filtered_df[filtered_df["sme_probability"].fillna(0) >= min_sme_prob]
 
 
+
+    # Sector filter
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Filter by sector")
+
+    #available sector codes
+    sector_pairs = []
+    if "sector_info" in df.columns:
+        for si in df["sector_info"].dropna():
+            if isinstance(si, dict):
+                code = si.get("sector_code", "unknown")
+                name = si.get("sector_name", "Unclassified")
+                sector_pairs.append((code, name))
+
+    seen = {}
+    for code, name in sector_pairs:
+        if code not in seen:
+            seen[code] = name
+
+    #check mark
+    st.sidebar.checkbox("Show sector codes", value=st.session_state.get("show_codes", False), key="show_codes")
+
+
+    def _sector_label(code: str) -> str:
+        name = seen.get(code, "Unclassified")
+        return f"{name} ({code})" if st.session_state.get("show_codes") else name
+
+    sector_options = list(seen.keys())
+
+    if "selected_sectors" not in st.session_state:
+        st.session_state.selected_sectors = []
+
+    selected_sectors = st.sidebar.multiselect(
+        "Choose sector(s)",
+        options=sector_options,
+        default=st.session_state.selected_sectors,
+        format_func=_sector_label,
+        key="selected_sectors",
+    )
+
+
+
+    if selected_sectors:
+        def _row_in_selected(row):
+            #primary sector match
+            primary_ok = False
+            si = row.get("sector_info", {})
+            if isinstance(si, dict):
+                primary_ok = si.get("sector_code") in selected_sectors
+
+            #any match
+            any_ok = False
+            codes = row.get("all_sectors_in_article", [])
+            if isinstance(codes, list):
+                any_ok = any(c in selected_sectors for c in codes)
+
+            return primary_ok or any_ok
+
+        filtered_df = filtered_df[filtered_df.apply(_row_in_selected, axis=1)]
+
+
+
+
     # -------------------------
     # Location filter
     # -------------------------
@@ -409,10 +503,12 @@ try:
 
     #filter summary
     _sd, _ed = st.session_state.get("date_range", (_min_date, _max_date))
+    _sector_ct = len(st.session_state.get("selected_sectors", []))
     st.markdown(
         f"**Current filters:** {len(st.session_state.get('selected_feeds', []))} feed(s) • "
         f"{_sd} → {_ed} • search: “{st.session_state.get('text_filter','')}” • "
-        f"locations: “{st.session_state.get('location_search','')}”"
+        f"locations: “{st.session_state.get('location_search','')}” • "
+        f"sectors: {_sector_ct or 'all'}"
     )
     st.write(f"**{len(filtered_df)}** articles match.")
 
@@ -445,10 +541,14 @@ try:
     _new_preset = st.sidebar.text_input("Save current as…", placeholder="Limburg 90d")
     if st.sidebar.button("Save preset") and _new_preset:
         _presets[_new_preset] = {
-            "text_filter": st.session_state.text_filter,
-            "selected_feeds": st.session_state.selected_feeds,
-            "location_search": st.session_state.location_search,
-            "date_range": list(st.session_state.date_range),
+            "text_filter":        st.session_state.get("text_filter", ""),
+            "selected_feeds":     st.session_state.get("selected_feeds", []),
+            "location_search":    st.session_state.get("location_search", ""),
+            "date_range":         list(st.session_state.get("date_range", (_min_date, _max_date))),
+            "min_sme_probability": float(st.session_state.get("min_sme_probability", 0.0)),
+            "selected_sectors":   list(st.session_state.get("selected_sectors", [])),
+            "show_codes":         bool(st.session_state.get("show_codes", False)),
+            "highlight_dups":     bool(st.session_state.get("highlight_dups", False)),
         }
         _save_presets(_presets)
         st.sidebar.success(f"Saved preset “{_new_preset}”.")
@@ -461,12 +561,7 @@ try:
     preset_names = list(_presets.keys())
 
     if preset_names:
-        del_sel = st.sidebar.selectbox(
-            "Choose preset to delete",
-            options=preset_names,
-            key="del_preset_name",
-        )
-
+        del_sel = st.sidebar.selectbox("Choose preset to delete", options=preset_names, key="del_preset_name")
         if st.sidebar.button("Delete selected", key="delete_selected_preset_btn"):
             # store the choice and show a confirmation step
             st.session_state["__confirm_del_name"] = del_sel
@@ -502,79 +597,168 @@ try:
     def geocode_locations_with_cache(rows, cache_file="cache/geocode_cache.json"):
         """Load cached coordinates (no warnings, no API calls)."""
         os.makedirs(os.path.dirname(cache_file), exist_ok=True)
-
-        # Load cache only
+        cache = {}
         if os.path.exists(cache_file):
             with open(cache_file, "r", encoding="utf-8") as f:
                 cache = json.load(f)
-        else:
-            cache = {}
 
-        geo_records = []
-        loc_to_titles = {}
-
-        # Collect unique locations
+        recs = []
         for _, row in rows.iterrows():
             locs = row.get("locations", [])
-            if isinstance(locs, list):
+            if isinstance(locs, list) and locs:
+                chosen = None
                 for loc in locs:
-                    loc_to_titles.setdefault(loc, []).append(row.get("title", "Untitled Article"))
-
-        # Use only cached coordinates
-        for loc, titles in loc_to_titles.items():
-            if loc in cache:
-                geo_data = cache[loc]
-                geo_records.append({
-                    "location": loc,
-                    "lat": geo_data["lat"],
-                    "lon": geo_data["lon"],
-                    "titles": titles
-                })
-            # Skip if not in cache
-            else:
-                continue
-
-        return geo_records
-
-    geo_records = geocode_locations_with_cache(filtered_df)
-
-    # Display the map and types of it
-    if geo_records:
-
-        map_mode = st.radio("Map mode", ["Heatmap", "Markers"], index=1, horizontal=True)
+                    if loc in cache:
+                        chosen = (loc, cache[loc]["lat"], cache[loc]["lon"])
+                        break
+                if chosen:
+                    si = row.get("sector_info", {}) if isinstance(row.get("sector_info", {}), dict) else {}
+                    recs.append({
+                        "title": row.get("title", "Untitled"),
+                        "url": row.get("url", ""),
+                        "location": chosen[0],
+                        "lat": chosen[1],
+                        "lon": chosen[2],
+                        "sector_code": si.get("sector_code", "unknown"),
+                        "sector_name": si.get("sector_name", "Unclassified"),
+                        "source": row.get("feed", ""),
+                        #"summary": row.get("summary") or row.get("full_text") or "",
+                    })
+        return recs
 
 
+
+    geo_article_records = geocode_locations_with_cache(filtered_df)
+
+    if geo_article_records:
+        #koloren
+        COLOR_HEX = {
+            "red": "#e74c3c",
+            "blue": "#2980b9",
+            "green": "#27ae60",
+            "purple": "#8e44ad",
+            "orange": "#f39c12",
+            "darkred": "#a93226",
+            "darkblue": "#1f3a93",
+            "darkgreen": "#196f3d",
+            "cadetblue": "#5f9ea0",
+            "darkpurple": "#512e5f",
+            "black": "#000000",
+            "gray": "#7f8c8d",
+        }
+        def _to_hex(cname: str) -> str:
+            if isinstance(cname, str) and cname.startswith("#"):
+                return cname
+            return COLOR_HEX.get(cname, "#7f8c8d")
+
+        def _text_on(bg_hex: str) -> str:
+            # WCAG relative luminance helper 3000
+            bg = bg_hex.lstrip("#")
+            r, g, b = [int(bg[i:i+2], 16)/255.0 for i in (0, 2, 4)]
+            def lin(u): return u/12.92 if u <= 0.03928 else ((u+0.055)/1.055)**2.4
+            L = 0.2126*lin(r) + 0.7152*lin(g) + 0.0722*lin(b)
+            return "#000" if L > 0.55 else "#fff"
+
+        # palettete
+        folium_colors = [
+            "red", "blue", "green", "purple", "orange",
+            "darkred", "darkblue", "darkgreen", "cadetblue",
+            "darkpurple", "black", "gray"
+        ]
+
+        #Map sector_code is color name
+        sector_codes_present = []
+        for r in geo_article_records:
+            if r["sector_code"] not in sector_codes_present:
+                sector_codes_present.append(r["sector_code"])
+        palette = {code: folium_colors[i % len(folium_colors)] for i, code in enumerate(sector_codes_present)}
+
+        show_codes = bool(st.session_state.get("show_codes", False))
+
+
+
+
+        #build map
         m = folium.Map(location=[52.1, 5.3], zoom_start=7)
 
+        map_mode = st.radio("Map mode", ["Heatmap", "Sector markers"], index=1, horizontal=True)
         if map_mode == "Heatmap":
-            heat_data = [[r["lat"], r["lon"], len(r["titles"])] for r in geo_records]
+            from collections import defaultdict
+            by_latlon = defaultdict(int)
+            for r in geo_article_records:
+                by_latlon[(r["lat"], r["lon"])] += 1
+            heat_data = [[lat, lon, wt] for (lat, lon), wt in by_latlon.items()]
             HeatMap(heat_data, radius=18, blur=15, max_zoom=6).add_to(m)
         else:
             cluster = MarkerCluster().add_to(m)
-            for record in geo_records:
-                popup_html = "<b>{}</b><br>{}".format(
-                    record["location"],
-                    "<br>".join([f"• {t}" for t in record["titles"]])
+            for r in geo_article_records:
+                cname = palette.get(r["sector_code"], "gray")
+                bg = _to_hex(cname)
+                fg = _text_on(bg)
+                label = f"{r['sector_name']} ({r['sector_code']})" if show_codes else r["sector_name"]
+                desc = _snippet(r.get("summary") or r.get("full_text") or "")
+
+                chip_html = (
+                    f"<span style='display:inline-block;padding:2px 6px;border-radius:6px;"
+                    f"background:{bg};color:{fg};border:1px solid rgba(0,0,0,.25);margin-right:6px;'>"
+                    f"{_e(label)}</span>"
                 )
-                folium.Marker(
-                    [record["lat"], record["lon"]],
-                    popup=popup_html,
-                    tooltip=f"{record['location']} ({len(record['titles'])} article(s))",
-                    icon=folium.Icon(color="blue", icon="info-sign"),
+                popup_html = f"""
+                <div style="max-width:280px;font:13px/1.35 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                  <div style="font-weight:700;font-size:15px;margin-bottom:6px;">{_e(r['title'])}</div>
+                  <div style="color:#666;margin-bottom:6px;">{chip_html}<span>Source: {_e(r.get('source',''))}</span></div>
+                  {"<div style='margin-bottom:6px;color:#555;'>"+_e(desc)+"</div>" if desc else ""}
+                  {f"<a href='{_e(r['url'])}' target='_blank' style='display:inline-block;padding:6px 10px;border:1px solid #ccc;border-radius:6px;text-decoration:none;'>Open</a>" if r.get("url") else ""}
+                </div>
+                """
+
+                folium.CircleMarker(
+                    [r["lat"], r["lon"]],
+                    radius=6,
+                    color=bg,
+                    fill=True,
+                    fill_color=bg,
+                    fill_opacity=0.9,
+                    tooltip=f"{r['location']}: {label}",
+                    popup=popup_html
                 ).add_to(cluster)
 
         st_folium(m, width=1000, height=600)
-        st.write(f"Showing {len(geo_records)} unique locations on the map")
+        st.write(f"Showing {len(geo_article_records)} articles with cached coordinates")
+
+        #what a legend
+        from collections import Counter
+        counts_by_code = Counter([r["sector_code"] for r in geo_article_records])
+
+        def legend_label(code: str) -> str:
+            any_row = next((r for r in geo_article_records if r["sector_code"] == code), None)
+            name = any_row["sector_name"] if any_row else "Unclassified"
+            return f"{name} ({code})" if show_codes else name
+
+        legend_rows = []
+        for code in sector_codes_present:
+            bg = _to_hex(palette.get(code, "gray"))
+            legend_rows.append(
+                f"<div style='display:flex;align-items:center;gap:8px;margin:4px 0;'>"
+                f"<span style='display:inline-block;width:14px;height:14px;background:{bg};"
+                f"border:1px solid rgba(0,0,0,0.4);border-radius:3px;'></span>"
+                f"<span>{legend_label(code)}</span>"
+                f"</div>"
+            )
+
+        with st.expander("Sector legend", expanded=False):
+            st.markdown("".join(legend_rows), unsafe_allow_html=True)
+
     else:
-        st.info("No cached geocoded locations found.")
-    
-    
+        st.info("No cached geocoded locations found for current filter")
+
+
     # -----------------------------------------
     # ARTICLE SPOTLIGHT
     # -----------------------------------------
 
     # heuristic 1: in Limburg
-    
+
     in_limburg_df = filtered_df[
         filtered_df['locations'].apply(
             lambda tags: any(tag.lower() in limburg for tag in tags)
@@ -600,14 +784,20 @@ try:
     st.subheader("Spotlight")
     pretty = spotlight_df.copy()
 
-    pretty["published_dt"] = pd.to_datetime(pretty.get("published"), errors="coerce", utc=True) \
-        .dt.tz_convert(None)
-
+    pretty["published_dt"] = pd.to_datetime(pretty.get("published"), errors="coerce", utc=True).dt.tz_convert(None)
     pretty = pretty.rename(columns={"feed": "source"})
 
-    pretty["date"] = pretty["published_dt"].dt.strftime("%Y-%m-%d %H:%M")
-    pretty["age"] = pretty["published_dt"].apply(_time_ago)
 
+    if "sector_info" in pretty.columns:
+        pretty["sector"] = pretty["sector_info"].apply(
+            lambda d: (d or {}).get("sector_name", "") if isinstance(d, dict) else ""
+        )
+    else:
+        pretty["sector"] = ""
+
+
+    pretty["date"] = pretty["published_dt"].dt.strftime("%Y-%m-%d %H:%M")
+    pretty["age"]  = pretty["published_dt"].apply(_time_ago)
 
     if "url" not in pretty.columns:
         pretty["url"] = ""
@@ -615,7 +805,7 @@ try:
 
 
 
-    display_cols = ["source", "title", "date", "age", "url"]
+    display_cols = ["source", "title", "sector", "date", "age", "url"]
     pretty = pretty.reindex(columns=display_cols).sort_values("date", ascending=False)
 
 
@@ -626,9 +816,10 @@ try:
         column_config={
             "source": st.column_config.TextColumn("Source", width="small"),
             "title":  st.column_config.TextColumn("Title", width="medium"),
+            "sector": st.column_config.TextColumn("Sector", width="small"),
             "date":   st.column_config.TextColumn("Published", width="small"),
             "age":    st.column_config.TextColumn("Age", help="Time since publication"),
-            "url":    st.column_config.LinkColumn("Open", display_text="Open")
+            "url":    st.column_config.LinkColumn("Link", display_text="Open")
         }
     )
 
@@ -702,7 +893,7 @@ try:
 
 
         st.caption(
-            "Score = sum of each keyword’s per-article score across the **currently filtered** articles. "
+            "Score = sum of each keyword’s per article score across the currently filtered articles. "
             "Higher means the keyword appears more (and/or in articles where it was ranked highly)"
         )
     else:
