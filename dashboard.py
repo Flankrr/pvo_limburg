@@ -79,6 +79,21 @@ def _save_presets(presets: dict):
         json.dump(presets, f, ensure_ascii=False, indent=2, default=str)
 
 
+def _reset_all_filters(feed_options_all, _min_date, _max_date):
+    st.session_state["text_filter"] = ""
+    st.session_state["selected_feeds"] = list(feed_options_all)
+    st.session_state["location_search"] = ""
+    dr = (_min_date, _max_date)
+    st.session_state["date_range"] = dr
+    st.session_state["date_range_widget"] = dr
+    st.session_state["min_sme_probability"] = 0.0
+
+
+    #future
+    st.session_state["selected_sectors"] = []
+    st.session_state["only_limburg"] = False
+    st.session_state["highlight_dups"] = False
+
 
 
 # all geoNames in Limburg
@@ -124,11 +139,9 @@ try:
     # -------------------------
     # Filtering UI
     # -------------------------
-    st.sidebar.header("Filter Options")
+    st.sidebar.header("Filter options")
 
-    if st.sidebar.button("Refresh data"):
-        st.cache_data.clear()
-        _rerun()
+
     # Column selector
     # cols_to_show = st.sidebar.multiselect(
     #     "Select columns to display",
@@ -153,9 +166,22 @@ try:
     if "date_range" not in st.session_state: st.session_state.date_range = (_min_date, _max_date)
     if "_pending_preset" in st.session_state:
         p = st.session_state.pop("_pending_preset")
-        st.session_state.text_filter = p.get("text_filter", "")
-        st.session_state.selected_feeds = p.get("selected_feeds", feed_options_all)
-        st.session_state.location_search = p.get("location_search", "")
+
+        st.session_state.text_filter = p.get("text_filter", st.session_state.get("text_filter", ""))
+        st.session_state.selected_feeds = p.get("selected_feeds", st.session_state.get("selected_feeds", feed_options_all))
+        st.session_state.location_search = p.get("location_search", st.session_state.get("location_search", ""))
+
+        if "min_sme_probability" in p:
+            try:
+                st.session_state.min_sme_probability = float(p["min_sme_probability"])
+            except Exception:
+                pass
+
+        if "selected_sectors" in p:
+            st.session_state.selected_sectors = p["selected_sectors"]
+        if "highlight_dups" in p:
+            st.session_state.highlight_dups = bool(p["highlight_dups"])
+
         dr = p.get("date_range", (_min_date, _max_date))
         if isinstance(dr, (list, tuple)) and len(dr) == 2:
             dr = (_parse_to_date(dr[0]), _parse_to_date(dr[1]))
@@ -164,6 +190,19 @@ try:
 
         st.session_state.date_range = dr
         st.session_state["date_range_widget"] = dr
+
+
+    #refresh + reset
+    c_ref, c_reset = st.sidebar.columns(2)
+    with c_ref:
+        if st.button("Refresh data", use_container_width=True):
+            st.cache_data.clear()
+            _rerun()
+    with c_reset:
+        if st.button("Reset filters", use_container_width=True):
+            _reset_all_filters(feed_options_all, _min_date, _max_date)
+            _rerun()
+
 
 
 
@@ -241,30 +280,23 @@ try:
 
 
     # Feed filter
-    if "feed" in filtered_df.columns:
-        feed_options = sorted(filtered_df["feed"].dropna().unique().tolist())
-
-    current_sel = st.session_state.get("selected_feeds", feed_options_all)
-    valid_sel = [f for f in current_sel if f in feed_options]
-
-    if not feed_options:
-        st.session_state.selected_feeds = []
-        st.sidebar.multiselect("Filter by feed", options=[], default=[], key="selected_feeds")
+    if "feed" in df.columns:
+        feed_options = sorted(df["feed"].dropna().unique().tolist())
     else:
-        if not valid_sel:
-            valid_sel = feed_options
-        st.session_state.selected_feeds = valid_sel
+        feed_options = []
 
-        selected_feeds = st.sidebar.multiselect(
-            "Filter by feed",
-            options=feed_options,
-            default=valid_sel,
-            key="selected_feeds",
-        )
-        if selected_feeds:
-            filtered_df = filtered_df[filtered_df["feed"].isin(selected_feeds)]
-        else:
-            filtered_df = filtered_df.iloc[0:0]
+    if "selected_feeds" not in st.session_state or not isinstance(st.session_state.selected_feeds, list):
+        st.session_state.selected_feeds = feed_options_all
+
+    selected_feeds = st.sidebar.multiselect(
+        "Filter by feed",
+        options=feed_options,
+        default=st.session_state.selected_feeds,
+        key="selected_feeds",
+    )
+
+    if selected_feeds:
+        filtered_df = filtered_df[filtered_df["feed"].isin(selected_feeds)]
 
 
 
@@ -384,6 +416,17 @@ try:
     )
     st.write(f"**{len(filtered_df)}** articles match.")
 
+    # Downloads for filtered data
+    c_dl1, c_dl2 = st.columns(2)
+    with c_dl1:
+        csv_bytes = filtered_df.to_csv(index=False).encode("utf-8")
+        st.download_button("Download filtered (CSV)", csv_bytes,
+                           "filtered_articles.csv", "text/csv", use_container_width=True)
+    with c_dl2:
+        json_text = filtered_df.to_json(orient="records", force_ascii=False, indent=2)
+        st.download_button("Download filtered (JSON)", json_text,
+                           "filtered_articles.json", "application/json", use_container_width=True)
+
 
     #presets
     st.sidebar.markdown("---")
@@ -399,7 +442,7 @@ try:
                 st.session_state["_pending_preset"] = _presets[_sel]
                 _rerun()
 
-    _new_preset = st.sidebar.text_input("Save current as…", placeholder="e.g., Limburg 90d")
+    _new_preset = st.sidebar.text_input("Save current as…", placeholder="Limburg 90d")
     if st.sidebar.button("Save preset") and _new_preset:
         _presets[_new_preset] = {
             "text_filter": st.session_state.text_filter,
@@ -412,40 +455,44 @@ try:
 
 
     #confirm delete
-    if "confirm_delete_presets" not in st.session_state:
-        st.session_state.confirm_delete_presets = False
+    st.sidebar.markdown("**Delete a preset**")
 
-    if st.sidebar.button("Delete all presets"):
-        st.session_state.confirm_delete_presets = True
-        _rerun()
+    _presets = _load_presets()
+    preset_names = list(_presets.keys())
 
-    if st.session_state.confirm_delete_presets:
-        st.sidebar.warning("This will remove ALL saved presets")
-        col_del, col_cancel = st.sidebar.columns(2)
+    if preset_names:
+        del_sel = st.sidebar.selectbox(
+            "Choose preset to delete",
+            options=preset_names,
+            key="del_preset_name",
+        )
 
-        with col_del:
-            if st.button("Yes, delete", key="delete_presets_yes"):
-                if os.path.exists(PRESETS_FILE):
-                    os.remove(PRESETS_FILE)
-                st.session_state.confirm_delete_presets = False
-                st.sidebar.success("All presets deleted")
-                _rerun()
+        if st.sidebar.button("Delete selected", key="delete_selected_preset_btn"):
+            # store the choice and show a confirmation step
+            st.session_state["__confirm_del_name"] = del_sel
+            _rerun()
 
-        with col_cancel:
-            if st.button("Cancel", key="delete_presets_cancel"):
-                st.session_state.confirm_delete_presets = False
-                _rerun()
+        # confirmation step
+        name_to_confirm = st.session_state.get("__confirm_del_name")
+        if name_to_confirm:
+            st.sidebar.warning(f"Delete preset “{name_to_confirm}”? This cannot be undone")
+            c_del, c_cancel = st.sidebar.columns(2)
+            with c_del:
+                if st.button("Yes, delete", key="do_delete_preset"):
+                    _presets.pop(name_to_confirm, None)
+                    _save_presets(_presets)
+                    st.sidebar.success(f"Deleted “{name_to_confirm}”.")
+                    st.session_state["__confirm_del_name"] = None
+                    _rerun()
+            with c_cancel:
+                if st.button("Cancel", key="cancel_delete_preset"):
+                    st.session_state["__confirm_del_name"] = None
+                    _rerun()
+    else:
+        st.sidebar.caption("no presets to delete yet")
 
 
-    #reset
-    if st.sidebar.button("Reset filters"):
-        st.session_state["_pending_preset"] = {
-            "text_filter": "",
-            "selected_feeds": feed_options_all,
-            "location_search": "",
-            "date_range": (_min_date, _max_date),
-        }
-        _rerun()
+
 
     # -------------------------
     # Map Section — Using Cached Geocoded Data
@@ -517,7 +564,6 @@ try:
                 ).add_to(cluster)
 
         st_folium(m, width=1000, height=600)
-        st.write(f"{len(filtered_df)} Articles")
         st.write(f"Showing {len(geo_records)} unique locations on the map")
     else:
         st.info("No cached geocoded locations found.")
@@ -546,7 +592,6 @@ try:
 
     spotlight_df = pd.concat([in_limburg_df, sme_df])
     spotlight_df = spotlight_df[~spotlight_df.index.duplicated(keep='first')]
-
 
 
 
@@ -588,6 +633,11 @@ try:
     )
 
 
+    st.caption(
+        "Why these articles are in spotlight: "
+        " located in **Limburg** and/or among the **top 5** by **SME probability**. "
+        "Duplicates are removed"
+    )
 
 
 
@@ -610,87 +660,264 @@ try:
 
     keywords = extract_keywords(filtered_df)
 
+
+
     if keywords:
         kw_df = pd.DataFrame(keywords)
-        top_keywords = (
-            kw_df.groupby("word", as_index=False)["score"]
-            .sum()
-            .sort_values("score", ascending=False)
-            .head(20)
+
+        #most important keywords overall by total score across the filtered set
+        kw_stats = (
+            kw_df.groupby("word")
+            .agg(mentions=("word", "size"), score=("score", "sum"))
+            .reset_index()
+            .sort_values(["score", "mentions"], ascending=False)
+            .head(10)# cap
         )
 
+        #chart
         kw_chart = (
-            alt.Chart(top_keywords)
+            alt.Chart(kw_stats)
             .mark_bar()
             .encode(
                 x=alt.X("score:Q", title="Score"),
                 y=alt.Y("word:N", sort='-x', title="Keyword"),
-                tooltip=["word", "score"]
+                tooltip=["word", "score", "mentions"]
             )
             .properties(height=400)
         )
         st.altair_chart(kw_chart, use_container_width=True)
 
+        with st.expander("Statistics table", expanded=False):
+            #table
+            st.dataframe(
+                kw_stats.rename(columns={"word": "Keyword", "score": "Score", "mentions": "Mentions"}),
+                hide_index=True,
+                width='stretch',
+                column_config={
+                    "Keyword":  st.column_config.TextColumn("Keyword"),
+                    "Mentions": st.column_config.NumberColumn("Mentions"),
+                    "Score":    st.column_config.NumberColumn("Score"),
+                }
+            )
 
-        st.dataframe(top_keywords, width='stretch')
-        st.caption("Keywords aggregated across all articles after filtering.")
+
+        st.caption(
+            "Score = sum of each keyword’s per-article score across the **currently filtered** articles. "
+            "Higher means the keyword appears more (and/or in articles where it was ranked highly)"
+        )
     else:
-        st.info("No keywords found for the filtered selection.")
+        st.info("No keywords found for the current filter")
 
-    st.subheader("Keyword Trends Over Time (Heatmap)")
-    
-    if not filtered_df.empty:
-        # Extract all keywords per article with published month
+
+
+
+
+    #Keyword trends over time
+    st.subheader("Keyword trends over time")
+
+    st.session_state.setdefault("kw_trend_mode", "normalized")
+    st.session_state.setdefault("kw_trend_topk", 10)
+    st.session_state.setdefault("kw_trend_roll", 6)
+
+
+
+    #quick presets
+    p1, p2, p3 = st.columns(3)
+    with p1:
+        if st.button("Long term trends", use_container_width=True):
+            st.session_state.kw_trend_mode = "normalized"
+            st.session_state.kw_trend_roll = 6
+            _rerun()
+    with p2:
+        if st.button("Short term trends", use_container_width=True):
+            st.session_state.kw_trend_mode = "normalized"
+            st.session_state.kw_trend_roll = 3
+            _rerun()
+    with p3:
+        if st.button("Raw counts", use_container_width=True):
+            st.session_state.kw_trend_mode = "raw"
+            st.session_state.kw_trend_roll = 0
+            _rerun()
+
+
+
+    #sliders
+    colL, colR = st.columns([1, 1])
+    with colL:
+        trend_top_k = st.slider(
+            "Top keywords",
+            min_value=3, max_value=15,
+            value=st.session_state.kw_trend_topk,
+            key="kw_trend_topk",
+        )
+    with colR:
+        trend_roll = st.slider(
+            "Rolling window (months)",
+            min_value=0, max_value=12,
+            value=st.session_state.kw_trend_roll,
+            key="kw_trend_roll",
+            help="0 = no smoothing",
+        )
+
+
+
+
+    #mode switch
+    mode_now = st.session_state.kw_trend_mode
+    mode_next = "raw" if mode_now == "normalized" else "normalized"
+    c_mode, c_btn = st.columns([3, 1])
+    with c_mode:
+        st.markdown(f"**Mode:** {'Normalized share (%)' if mode_now == 'normalized' else 'Raw counts'}")
+    with c_btn:
+        if st.button(
+                f"Switch to {('Raw counts' if mode_now=='normalized' else 'Normalized share')}",
+                use_container_width=True, key="kw_trend_switch"
+        ):
+            st.session_state.kw_trend_mode = mode_next
+            _rerun()
+
+
+
+    #building
+    if filtered_df.empty or "published" not in filtered_df.columns:
+        st.info("No keyword trend data for the current filters/date range")
+    else:
         trend_rows = []
         for _, row in filtered_df.iterrows():
             pub = row.get("published")
-            if pub:
-                pub_date = pd.to_datetime(pub, errors="coerce")
-                if pd.notna(pub_date):
-                    month_str = pub_date.strftime("%Y-%m")
-                    kw_list = row.get("keywords", [])
-                    if isinstance(kw_list, list):
-                        for kw in kw_list:
-                            if isinstance(kw, dict) and "word" in kw:
-                                trend_rows.append({
-                                "keyword": kw["word"],
-                                "month": month_str
-                            })
-        if trend_rows:
-            trend_df = pd.DataFrame(trend_rows)
+            if not pub:
+                continue
+            pub_date = pd.to_datetime(pub, errors="coerce")
+            if pd.isna(pub_date):
+                continue
+            month_str = pub_date.strftime("%Y-%m")
+            kw_list = row.get("keywords", [])
+            if isinstance(kw_list, list):
+                for kw in kw_list:
+                    if isinstance(kw, dict) and "word" in kw:
+                        trend_rows.append({"keyword": kw["word"], "month": month_str})
 
-            # Count keyword frequency per month
-            heat_df = (
-            trend_df.groupby(["keyword", "month"])
-            .size()
-            .reset_index(name="count")
-            )
+        if not trend_rows:
+            st.info("No keyword trend data for the current filters/date range")
+        else:
+            base = pd.DataFrame(trend_rows)
 
-            # keep only the top 20 keywords overall for readability
-            top_20 = (
-                heat_df.groupby("keyword")["count"].sum()
+
+            #mentions per (keyword, month)
+            counts = base.groupby(["keyword", "month"]).size().reset_index(name="count")
+
+            #top-K keywords in current date range
+            top_kw = (
+                counts.groupby("keyword")["count"].sum()
                 .sort_values(ascending=False)
-                .head(20)
+                .head(trend_top_k)
                 .index.tolist()
             )
-            heat_df = heat_df[heat_df["keyword"].isin(top_20)]
+            counts = counts[counts["keyword"].isin(top_kw)]
 
-            # Build heatmap
-            heatmap = (
-                alt.Chart(heat_df)
-                .mark_rect()
-                .encode(
-                    x=alt.X("month:N", title="Month", sort="ascending"),
-                    y=alt.Y("keyword:N", title="Keyword"),
-                    color=alt.Color("count:Q", scale=alt.Scale(scheme="reds")),
-                    tooltip=["keyword", "month", "count"]
+            months_sorted = sorted(counts["month"].unique())
+            grid = pd.MultiIndex.from_product([top_kw, months_sorted], names=["keyword", "month"]).to_frame(index=False)
+            raw = grid.merge(counts, on=["keyword", "month"], how="left").fillna({"count": 0})
+
+            #smoothing
+            use_smooth = (trend_roll > 0)
+
+
+
+
+            #raw
+            if use_smooth:
+                raw["y_val"] = (
+                    raw.sort_values(["keyword", "month"])
+                    .groupby("keyword")["count"]
+                    .transform(lambda s: s.rolling(trend_roll, min_periods=1).mean())
                 )
-            .properties(height=400)
-        )
-        st.altair_chart(heatmap, use_container_width=True)
+            else:
+                raw["y_val"] = raw["count"]
 
-    else:
-        st.info("No keyword trend data available for the filtered selection.")       
+
+
+            #NORMALIZED
+            month_totals = raw.groupby("month")["count"].sum().rename("month_total")
+            norm = raw.merge(month_totals, on="month", how="left")
+            norm["share_pct"] = (norm["count"] / norm["month_total"].replace(0, 1)) * 100
+            if use_smooth:
+                norm["y_val"] = (
+                    norm.sort_values(["keyword", "month"])
+                    .groupby("keyword")["share_pct"]
+                    .transform(lambda s: s.rolling(trend_roll, min_periods=1).mean())
+                )
+            else:
+                norm["y_val"] = norm["share_pct"]
+
+
+
+
+            #charts
+            if st.session_state.kw_trend_mode == "normalized":
+                y_title = "Share of monthly mentions (%)" + (" (smoothed)" if use_smooth else "")
+                line = (
+                    alt.Chart(norm).mark_line().encode(
+                        x=alt.X("month:N", title="Month", sort="ascending"),
+                        y=alt.Y("y_val:Q", title=y_title),
+                        color=alt.Color("keyword:N", title="Keyword"),
+                        tooltip=["keyword", "month", alt.Tooltip("y_val:Q", title="share%", format=".2f")]
+                    ).properties(height=420)
+                )
+                st.altair_chart(line, use_container_width=True)
+
+                heat = (
+                    alt.Chart(norm).mark_rect().encode(
+                        x=alt.X("month:N", title="Month", sort="ascending"),
+                        y=alt.Y("keyword:N", title="Keyword"),
+                        color=alt.Color("y_val:Q", title="share%" + (" (smoothed)" if use_smooth else ""),
+                                        scale=alt.Scale(scheme="reds")),
+                        opacity=alt.condition(alt.datum.y_val > 0, alt.value(1), alt.value(0)),
+                        tooltip=["keyword", "month", alt.Tooltip("y_val:Q", title="share%", format=".2f")]
+                    ).properties(height=420)
+                )
+                st.altair_chart(heat, use_container_width=True)
+
+                st.caption(
+                    f"Top {trend_top_k} keywords by total mentions. Showing "
+                    + ("**normalized share per month (smoothed)** with a "
+                       f"**{trend_roll}-month** rolling average" if use_smooth
+                       else "**normalized share per month (no smoothing)**")
+                )
+            else:
+                y_title = "Mentions" + (" (smoothed)" if use_smooth else "")
+                line2 = (
+                    alt.Chart(raw).mark_line().encode(
+                        x=alt.X("month:N", title="Month", sort="ascending"),
+                        y=alt.Y("y_val:Q", title=y_title),
+                        color=alt.Color("keyword:N", title="Keyword"),
+                        tooltip=["keyword", "month", alt.Tooltip("y_val:Q", title="mentions", format=".2f")]
+                    ).properties(height=420)
+                )
+                st.altair_chart(line2, use_container_width=True)
+
+                heat2 = (
+                    alt.Chart(raw).mark_rect().encode(
+                        x=alt.X("month:N", title="Month", sort="ascending"),
+                        y=alt.Y("keyword:N", title="Keyword"),
+                        color=alt.Color(("y_val:Q" if use_smooth else "count:Q"),
+                                        title=("Mentions (smoothed)" if use_smooth else "Mentions"),
+                                        scale=alt.Scale(scheme="blues")),
+                        opacity=alt.condition((alt.datum.y_val if use_smooth else alt.datum.count) > 0,
+                                              alt.value(1), alt.value(0)),
+                        tooltip=["keyword", "month",
+                                 (alt.Tooltip("y_val:Q", title="mentions", format=".2f") if use_smooth else "count")]
+                    ).properties(height=420)
+                )
+                st.altair_chart(heat2, use_container_width=True)
+
+                st.caption(
+                    f"Top {trend_top_k} keywords by total mentions. Showing "
+                    + ("**raw mentions (smoothed)** with a "
+                       f"**{trend_roll}-month** rolling average" if use_smooth
+                       else "**raw mentions (no smoothing)**")
+                )
+
 
 
 
