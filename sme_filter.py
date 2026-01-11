@@ -186,6 +186,75 @@ def lf_bankruptcy_only(x):
         return NOT_SME
     return ABSTAIN
 
+@labeling_function()
+def lf_privacy_data_breach(x):
+    text = (x.get("clean_geo") or "").lower()
+    return SME if re.search(
+        r"\b(gdpr|avg|privacy|datalek|data leak|data breach|"
+        r"gegevenslek|klantgegevens|persoonsgegevens|"
+        r"exposed data|credential(s)? leak|wachtwoord(en)? gelekt)\b",
+        text
+    ) else ABSTAIN
+
+@labeling_function()
+def lf_regulatory_fines(x):
+    text = (x.get("clean_geo") or "").lower()
+    if re.search(r"\b(boete|fined|fine|sanctie|sanction|"
+                 r"gerechtshof|rechter|rechterlijk besluit|"
+                 r"juridische uitspraak|astronomische\s+boetes?)\b", text):
+        # Only relevant if a business entity is present
+        if re.search(r"\b(bedrijf|onderneming|organisatie|mkb|zaak|ondernemer)\b", text):
+            return SME
+    return ABSTAIN
+
+@labeling_function()
+def lf_security_incident(x):
+    text = (x.get("clean_geo") or "").lower()
+    if re.search(
+        r"\b(ongeautoriseerde toegang|unauthorized access|"
+        r"server(?:\s+)?toegang|inbraak op server|"
+        r"brute force|bruteforce|credential(s)? theft|"
+        r"kwetsbaarheid|vulnerability|misconfiguratie|"
+        r"data exfiltration)\b",
+        text
+    ):
+        if re.search(r"\b(bedrijf|onderneming|mkb|zaak|organisatie)\b", text):
+            return SME
+    return ABSTAIN
+
+@labeling_function()
+def lf_public_crime_no_business(x):
+    text = (x.get("clean_geo") or "").lower()
+
+    # Crime words
+    crime_terms = r"(schietpartij|shooting|drugs?lab|hennepkwekerij|"
+    crime_terms += r"illegale vuurwerk|fireworks|aanhouding(en)?|"
+    crime_terms += r"verkeersongeval|traffic accident|dodelijk ongeluk)"
+
+    # No business entity
+    no_business = not re.search(r"\b(bedrijf|onderneming|mkb|zaak|organisatie)\b", text)
+
+    return NOT_SME if re.search(crime_terms, text) and no_business else ABSTAIN
+
+@labeling_function()
+def lf_requires_business_entity(x):
+    text = (x.get("clean_geo") or "").lower()
+
+    crime_like = re.search(
+        r"\b(fraude|oplichting|witwassen|arrestatie|"
+        r"onderzoek|aanhouding|criminaliteit|inbraak|"
+        r"strafzaak|ransomware|hack)\b", text)
+
+    has_business = re.search(
+        r"\b(bedrijf|onderneming|mkb|zaak|organisatie|winkel|restaurant|ict-bedrijf)\b",
+        text)
+
+    if crime_like and not has_business:
+        return NOT_SME
+
+    return ABSTAIN
+
+
 
 ## -------------------------------------------------------------- ##
 
@@ -214,13 +283,19 @@ def run_snorkel(df, lfs=None, min_conf=0.6):
     lf_general_sector_terms,
     lf_generic_entrepreneurship,
     # lf_international_politics,
-    # lf_accidents_crime,
+    #lf_accidents_crime,
     lf_politics_domestic,
     lf_sme_cybercrime,
-    lf_sports_entertainment,
+    #lf_sports_entertainment,
     lf_business_crime,
-    #lf_bankruptcy_only,
-    lf_government_only
+    lf_bankruptcy_only,
+    lf_government_only,
+    # NEW HIGH-IMPACT LFs
+    lf_privacy_data_breach,
+    lf_regulatory_fines,
+    lf_security_incident,
+    lf_public_crime_no_business,
+    lf_requires_business_entity
 ]
 
     # 1) Apply LFs:
