@@ -1,9 +1,15 @@
 [
   {
-    "published": "Tue, 01 Oct 2024 09:29:00",
-    "title": "Microsoft Defender waarschuwt gebruikers voor openbare wifi",
-    "url": "https://www.security.nl/posting/860153/Microsoft+Defender+waarschuwt+gebruikers+voor+openbare+wifi",
-    "full_text": "Microsofts gratis virusscanner Defenderwaarschuwtgebruikers voortaan ook voor onveilige en 'verdachte' openbare wifi. Volgens het techbedrijf zijn dergelijke netwerken niet altijd veilig en kan persoonlijke data van gebruikers gevaar lopen. De waarschuwing wordt alleen getoond voor gebruikers met een Microsoft 365 family of persoonlijk abonnement. Daarnaast moeten gebruikers zijn ingelogd met hun Microsoft-account. De virusscanner zal automatisch detecteren en waarschuwen voor 'unsecure' en 'unsafe' wifi-verbindingen. In dit laatste geval gaat het om 'verdachte wifi', waarbij Microsoft gebruikmaakt van heuristiek. In de waarschuwing zal de optie worden geboden om een vpn-verbinding in te schakelen. De wifi-detectie is op dit moment beschikbaar voor Android, iOS en Windows. MacOS-support volgt. Gebruikers kunnen de waarschuwing van de virusscanner negeren en gewoon verbinding met de wifi-netwerken maken.",
-    "feed": "security.nl"
+    "feed": "RTV Noord",
+    "title": "Lycurgus wint van Limax in aanloop naar duel tegen Limax: ‘Het is geen voordeel’",
+    "url": "https://www.rtvnoord.nl/sport/1372024/lycurgus-wint-van-limax-in-aanloop-naar-duel-tegen-limax-het-is-geen-voordeel",
+    "published": "Sun, 18 Jan 2026 18:31:08 GMT",
+    "summary": "Lycurgus heeft de week afgesloten met een thuiszege op het Limburgse Numidia VC Limax. De Groningse volleyballers wonnen met 3-1 van de nummer vijf van de eredivisie, die volgende week de tegenstander is in het bekertoernooi.",
+    "full_text": "‘Het is geen voordeel dat we deze wedstrijd speelden. Dat is eerder een voordeel voor hen, dan voor ons. Je kon zien dat ze slecht begonnen, omdat ze moesten wennen aan alles, en ze eindigden best wel goed. Wij gelukkig beter, maar dat betekent ook dat ze in de wedstrijd groeien en aan de zaal wennen. Dus het is absoluut niet zeker dat we volgende week gaan winnen’, aldus Gortzak.",
+    "scraped_at": "2026-01-20T14:34:27.564275Z",
+    "id": "270b1bc3600ad783b888fb6fb40b583263fcc9e838926e7114b4c251de3d3966",
+    "canonical_url": "https://www.rtvnoord.nl/sport/1372024/lycurgus-wint-van-limax-in-aanloop-naar-duel-tegen-limax-het-is-geen-voordeel",
+    "published_ts": null,
+    "source_type": "rss"
   }
 ]

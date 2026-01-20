@@ -6,7 +6,7 @@
 import pandas as pd
 import json
 from geo_filter import build_geo_df
-from sme_filter import run_snorkel
+from layered_filter import run_crime_snorkel, run_sme_snorkel
 from narrow_locations import apply_location_narrowing
 from sector_classifier import add_sector_classification
 from narrow_locations import apply_location_narrowing
@@ -63,8 +63,7 @@ for art in data:
         continue
 
     # Save single article to temp JSON (build_geo_df requires a file path)
-    os.makedirs("cache", exist_ok=True)
-    temp_path = os.path.join("cache", "_cache_single.json")
+    temp_path = "_cache_single.json"
     with open(temp_path, "w", encoding="utf-8") as tf:
         json.dump([art], tf, ensure_ascii=False, indent=2)
 
@@ -73,26 +72,34 @@ for art in data:
     if len(single_df) == 0:
         continue  # No geo info → skip article
 
+    # CRIME FILTER
+    single_df = run_crime_snorkel(single_df)
+    if len(single_df) == 0:
+        continue
+
     # SME FILTER
-    single_df, _ = run_snorkel(single_df, min_conf=0.5)
-    single_df = single_df[single_df["sme_probability"] > 0.6]
+    single_df = run_sme_snorkel(single_df)
     if len(single_df) == 0:
         continue  # Not an SME article → skip
 
     # LOCATION NARROWING
     if len(single_df) > 0:
         single_df = apply_location_narrowing(single_df)
-
+    if len(single_df) == 0:
+        continue
+        
     # SECTOR CLASSIFICATION
     if len(single_df) > 0:
         single_df = add_sector_classification(single_df)
+    if len(single_df) == 0:
+        continue
 
     # Keep result
     if len(single_df) > 0:
         result = single_df.to_dict(orient="records")[0]
         new_cache_entries[aid] = result
         processed_rows.append(result)
-
+    
 # Save cache if new entries were added
 if new_cache_entries:
     cache.update(new_cache_entries)
