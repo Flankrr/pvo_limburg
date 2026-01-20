@@ -9,8 +9,24 @@ from datetime import datetime, date, timedelta
 import altair as alt
 from sector_classifier import add_sector_classification
 from html import escape as _e
+import requests
 
-# streamlit run dashboard.py
+
+
+DATA_URL = os.getenv("DATA_URL", "").strip()
+FILE_PATH = os.getenv("FILE_PATH", os.path.join("keywords", "all_articles_keywords.json"))
+
+@st.cache_data(ttl=300, show_spinner=False)
+def load_records():
+    if DATA_URL:
+        r = requests.get(DATA_URL, timeout=30, headers={"User-Agent": "pvo-limburg-dashboard/1.0"})
+        r.raise_for_status()
+        return r.json()
+    with open(FILE_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+# streamlit run dashboard.py     this is to run
 
 
 #streamlit help
@@ -121,8 +137,8 @@ def _classify_all_articles(df_records):
 @st.cache_data
 def limburg_box():
     geo_df = pd.read_csv(
-        "geoNames\\NL.txt", 
-        sep="\t", 
+        os.path.join("geoNames", "NL.txt"),
+        sep="\t",
         header=None,
         dtype={4: float, 5: float},  # lat/lon columns
         names=[
@@ -134,7 +150,7 @@ def limburg_box():
     )
 
     geo_df = geo_df[["name", "latitude", "longitude", "admin1_code"]]
-    geo_in_box = geo_df[geo_df["admin1_code"] == 5]
+    geo_in_box = geo_df[geo_df["admin1_code"].astype(str).str.zfill(2) == "05"]
 
 
 
@@ -144,7 +160,6 @@ limburg = limburg_box()
 
 #--------------------------------
 
-FILE_PATH = "keywords\\all_articles_keywords.json"
 st.title("PVO Dashboard")
 
 
@@ -164,11 +179,9 @@ def divider():
 
 
 try:
-
-    with open(FILE_PATH, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
+    data = load_records()
     df = pd.json_normalize(data)
+
 
     try:
         df = pd.DataFrame(_classify_all_articles(df.to_dict(orient="records")))
