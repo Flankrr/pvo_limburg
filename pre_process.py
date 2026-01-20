@@ -10,6 +10,11 @@ from sme_filter import run_snorkel
 from narrow_locations import apply_location_narrowing
 from sector_classifier import add_sector_classification
 from narrow_locations import apply_location_narrowing
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+import nltk
+from nltk.corpus import stopwords
+
 
 ### >>> CACHING ADDED >>>
 import os
@@ -170,20 +175,21 @@ def word_tokenizer(example, vocab, unknown_token='<unk>'):
 # -------------------------
 # Dashboard keyword output
 # -------------------------
-import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-import nltk
-from nltk.corpus import stopwords
 
-# If no SME articles, still write an empty file so Actions/Streamlit don't break
+
+#if no SME articles still write an empty file so streamlit dont break
 os.makedirs("keywords", exist_ok=True)
 OUT_JSON = os.path.join("keywords", "all_articles_keywords.json")
 
 if sme_filtered.empty:
     with open(OUT_JSON, "w", encoding="utf-8") as f:
         json.dump([], f, ensure_ascii=False, indent=2)
-    print(f"⚠️ No SME articles found. Wrote empty {OUT_JSON}.")
+    print(f"No SME articles found. Wrote empty {OUT_JSON}")
     raise SystemExit(0)
+
+
+
+
 
 def get_raw_text(row):
     if "full_text" in row and isinstance(row["full_text"], str) and row["full_text"].strip():
@@ -192,11 +198,11 @@ def get_raw_text(row):
     summary = row.get("summary", "") or ""
     return f"{title} {summary}".strip()
 
-# Ensure each row has 'clean'
+#each row has clean
 sme_filtered = sme_filtered.copy()
 sme_filtered["clean"] = sme_filtered.apply(lambda r: clean_text(get_raw_text(r)), axis=1)
 
-# Dutch stopwords
+#dutch stopwords
 nltk.download("stopwords", quiet=True)
 stopword_list = stopwords.words("dutch")
 
@@ -205,6 +211,9 @@ corpus = sme_filtered["clean"].fillna("").tolist()
 vectorizer = TfidfVectorizer(max_features=10000, stop_words=stopword_list)
 tfidf = vectorizer.fit_transform(corpus)
 vocab = np.array(vectorizer.get_feature_names_out())
+
+
+
 
 top_k = 10
 keywords_col = []
@@ -226,4 +235,4 @@ sme_filtered.to_json(
     force_ascii=False
 )
 
-print(f"✅ Wrote {OUT_JSON} with {len(sme_filtered)} SME articles.")
+print(f"Wrote {OUT_JSON} with {len(sme_filtered)} SME articles")

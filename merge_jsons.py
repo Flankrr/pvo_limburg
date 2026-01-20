@@ -14,7 +14,7 @@ def merge_json_files(input_dir: str, output_file: str):
     seen_urls = set()
 
     json_files = glob.glob(os.path.join(input_dir, "*.json"))
-    print(f"🔍 Found {len(json_files)} JSON files in '{input_dir}'")
+    print(f" Found {len(json_files)} JSON files in '{input_dir}'")
 
     for file_path in json_files:
         print (file_path)
@@ -35,7 +35,7 @@ def merge_json_files(input_dir: str, output_file: str):
         except Exception as e:
             print(f"⚠️ Skipping {file_path}: {e}")
 
-    print(f"✅ Merged {len(all_articles)} unique articles from {len(json_files)} files.")
+    print(f" Merged {len(all_articles)} unique articles from {len(json_files)} files")
 
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(all_articles, out, ensure_ascii=False, indent=2)
@@ -61,7 +61,7 @@ def csv_to_json(csv_file_path, json_file_path, feed):
     # Convert to JSON and save
     df.to_json(json_file_path, orient='records', indent=4, force_ascii=False)
     
-    print(f"✅ Successfully converted {csv_file_path} → {json_file_path}")
+    print(f"Successfully converted {csv_file_path} → {json_file_path}")
 
 if __name__ == "__main__":
     csv_path = os.path.join("articles", "security_nl_articles.csv")
@@ -70,6 +70,6 @@ if __name__ == "__main__":
     if os.path.exists(csv_path):
         csv_to_json(csv_path, json_path, "security.nl")
     else:
-        print(f"ℹ️ CSV not found at {csv_path} — skipping CSV import.")
+        print(f"ℹCSV not found at {csv_path} — skipping CSV import")
 
     merge_json_files(INPUT_DIR, OUTPUT_FILE)
