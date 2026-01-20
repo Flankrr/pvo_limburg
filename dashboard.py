@@ -64,6 +64,26 @@ def _clamp_date_range(min_d: date, max_d: date, value):
         sd, ed = min_d, max_d
     return (sd, ed)
 
+import datetime as dtmod
+from email.utils import parsedate_to_datetime
+
+def _normalize_published_to_utc_iso(published_value) -> str:
+
+        if published_value is None or (isinstance(published_value, float) and pd.isna(published_value)):
+            return ""
+
+        s = str(published_value).strip()
+        if not s:
+            return ""
+
+        try:
+            d = parsedate_to_datetime(s)  # robust for RSS dates
+            if d.tzinfo is None:
+                d = d.replace(tzinfo=dtmod.timezone.utc)
+                d_utc = d.astimezone(dtmod.timezone.utc)
+                return d_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+        except Exception:
+            return s
 
 
 def _time_ago(ts: pd.Timestamp) -> str:
@@ -181,7 +201,9 @@ def divider():
 try:
     data = load_records()
     df = pd.json_normalize(data)
-
+    # Normalize all published dates once so all timezones/strings are consistent
+    if "published" in df.columns:
+        df["published"] = df["published"].apply(_normalize_published_to_utc_iso)
 
     try:
         df = pd.DataFrame(_classify_all_articles(df.to_dict(orient="records")))
@@ -202,9 +224,6 @@ try:
     #     options=df.columns.tolist(),
     #     default=df.columns.tolist()
     # )
-
-
-
 
 
     #session-state defaults, global options for reset/presets
@@ -525,9 +544,11 @@ try:
         st.session_state.date_range = (start_date, end_date)
 
         #filter
+        #st.caption(f"DEBUG before date filter: {len(filtered_df)}")
         tmp_dates = pd.to_datetime(filtered_df[date_col], errors="coerce")
         filtered_df = filtered_df.loc[tmp_dates.notna()].copy()
         tmp_dates = tmp_dates.loc[tmp_dates.notna()]
+        #st.caption(f"DEBUG published parsed: {int(tmp_dates.notna().sum())}/{len(tmp_dates)}")
         filtered_df = filtered_df[
             (tmp_dates.dt.date >= start_date) & (tmp_dates.dt.date <= end_date)
             ]
@@ -629,14 +650,14 @@ try:
 
 
     # -------------------------
-    # Map Section — Using Cached Geocoded Data
+    # MAP SECTION — Using Cached Geocoded Data
     # -------------------------
     st.subheader("Interactive map")
 
     _GEO_BBOXES = [
-        (50.5, 3.2, 53.7, 7.3),   #Netherlands
-        (49.4, 2.5, 51.7, 6.4),   #Belgium
-        (50.3, 5.5, 52.0, 7.8),   #NRW
+        (50.5, 3.2, 53.7, 7.3),   # Netherlands
+        (49.4, 2.5, 51.7, 6.4),   # Belgium
+        (50.3, 5.5, 52.0, 7.8),   # NRW
     ]
 
     def _in_any_bbox(lat, lon):
@@ -646,75 +667,132 @@ try:
         return False
 
 
-
     def geocode_locations_with_cache(rows, cache_file="cache/geocode_cache.json"):
+        """
+        Read-only cache usage:
+        - Accept locations as list OR as stringified list
+        - Normalize keys so cache lookup matches better
+        - Pick first cached candidate INSIDE bbox (NL/BE/NRW)
+        - Skip article if no in-bbox cached location exists
+        """
+        import ast
+        import unicodedata
+
         os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+
         cache = {}
         if os.path.exists(cache_file):
             with open(cache_file, "r", encoding="utf-8") as f:
                 cache = json.load(f)
 
+        # Normalize cache keys for robust matching
+        def _norm(s: str) -> str:
+            s = unicodedata.normalize("NFKC", str(s)).strip()
+            s = " ".join(s.split())
+            return s.lower()
+
+        cache_norm = {}
+        for k, v in cache.items():
+            try:
+                cache_norm[_norm(k)] = (float(v["lat"]), float(v["lon"]), k)
+            except Exception:
+                pass
+
         recs = []
+
+        # Debug counters
+        total_rows = 0
+        locs_as_list = 0
+        locs_as_str = 0
+        locs_empty = 0
+        had_any_cached = 0
+        had_in_bbox = 0
+
         for _, row in rows.iterrows():
+            total_rows += 1
             locs = row.get("locations", [])
-            if isinstance(locs, list) and locs:
-                chosen = None
-                for loc in locs:
-                    if loc in cache:
-                        chosen = (loc, cache[loc]["lat"], cache[loc]["lon"])
-                        break
-                if chosen:
-                    si = row.get("sector_info", {}) if isinstance(row.get("sector_info", {}), dict) else {}
-                    recs.append({
-                        "title": row.get("title", "Untitled"),
-                        "url": row.get("url", ""),
-                        "location": chosen[0],
-                        "lat": chosen[1],
-                        "lon": chosen[2],
-                        "sector_code": si.get("sector_code", "unknown"),
-                        "sector_name": si.get("sector_name", "Unclassified"),
-                        "source": row.get("feed", ""),
-                        "published": row.get("published", ""),
-                        #"summary": row.get("summary") or row.get("full_text") or "",
-                    })
+
+            # Handle stringified lists: "['Flevoland', 'Zwolle']"
+            if isinstance(locs, str):
+                locs_as_str += 1
+                try:
+                    parsed = ast.literal_eval(locs)
+                    if isinstance(parsed, list):
+                        locs = parsed
+                    else:
+                        locs = []
+                except Exception:
+                    locs = []
+
+            if isinstance(locs, list):
+                locs_as_list += 1
+
+            if not (isinstance(locs, list) and len(locs) > 0):
+                locs_empty += 1
+                continue
+
+            # Gather cached candidates (normalized match)
+            candidates = []
+            for loc in locs:
+                key = _norm(loc)
+                if key in cache_norm:
+                    lat, lon, original_key = cache_norm[key]
+                    candidates.append((str(loc), lat, lon, original_key))
+
+            if not candidates:
+                continue
+
+            had_any_cached += 1
+
+            # Choose first candidate inside bbox
+            chosen = None
+            for loc_label, lat, lon, original_key in candidates:
+                if _in_any_bbox(lat, lon):
+                    chosen = (loc_label, lat, lon)
+                    had_in_bbox += 1
+                    break
+
+            if chosen is None:
+                continue
+
+            si = row.get("sector_info", {}) if isinstance(row.get("sector_info", {}), dict) else {}
+            recs.append({
+                "title": row.get("title", "Untitled"),
+                "url": row.get("url", ""),
+                "location": chosen[0],
+                "lat": chosen[1],
+                "lon": chosen[2],
+                "sector_code": si.get("sector_code", "unknown"),
+                "sector_name": si.get("sector_name", "Unclassified"),
+                "source": row.get("feed", ""),
+                "published": row.get("published", ""),
+            })
+
+        # One-line debug so you can see why you’re getting “4”
+        st.caption(
+            f"Geo debug — rows:{total_rows} | locs(list):{locs_as_list} | locs(str):{locs_as_str} | "
+            f"locs(empty):{locs_empty} | any_cached:{had_any_cached} | in_bbox_cached:{had_in_bbox} | plotted:{len(recs)}"
+        )
+
         return recs
 
 
-
-    geo_article_records = geocode_locations_with_cache(filtered_df)
-    geo_article_records = [
-        r for r in geo_article_records
-        if _in_any_bbox(r["lat"], r["lon"])
-    ]
+    # IMPORTANT: define geo_article_records here
+    # Also: double-check your file name is EXACTLY this (geocode_cache vs geocode_cache)
+    geo_article_records = geocode_locations_with_cache(filtered_df, cache_file="cache/geocode_cache.json")
 
     if geo_article_records:
-        #koloren
-
         MARKER_COLOR = "#ff6b6b"
 
-
-
         def _text_on(bg_hex: str) -> str:
-            # WCAG relative luminance helper 3000
             bg = bg_hex.lstrip("#")
             r, g, b = [int(bg[i:i+2], 16)/255.0 for i in (0, 2, 4)]
             def lin(u): return u/12.92 if u <= 0.03928 else ((u+0.055)/1.055)**2.4
             L = 0.2126*lin(r) + 0.7152*lin(g) + 0.0722*lin(b)
             return "#000" if L > 0.55 else "#fff"
 
-
-        # palettete
-
-
-        #Map sector_code is color name
-
-
         show_codes = bool(st.session_state.get("show_codes", False))
 
-
-
-
-        #build map
         m = folium.Map(location=[52.1, 5.3], zoom_start=7)
 
         map_mode = st.radio("Map mode", ["Heatmap", "Sector markers"], index=1, horizontal=True)
@@ -727,7 +805,6 @@ try:
             HeatMap(heat_data, radius=18, blur=15, max_zoom=6).add_to(m)
         else:
             cluster = MarkerCluster(
-                #spidey
                 options={
                     "spiderfyOnMaxZoom": True,
                     "disableClusteringAtZoom": 20,
@@ -735,6 +812,7 @@ try:
                     "spiderfyDistanceMultiplier": 1.8,
                 }
             ).add_to(m)
+
             for r in geo_article_records:
                 bg = MARKER_COLOR
                 fg = _text_on(bg)
@@ -808,7 +886,7 @@ try:
 
 
 
-    # spotliht
+    # spotlight
 
     st.subheader("Spotlight")
     pretty = spotlight_df.copy()

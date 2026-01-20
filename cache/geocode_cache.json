@@ -1,5 +1,5 @@
 {
-  "Californi\u00eb": {
+  "Californië": {
     "lat": 36.7014631,
     "lon": -118.755997
   },
@@ -11,7 +11,7 @@
     "lat": 50.8465573,
     "lon": 4.351697
   },
-  "Belgi\u00eb": {
+  "België": {
     "lat": 50.6402809,
     "lon": 4.6667145
   },
@@ -174,10 +174,961 @@
   "gemeente Arnhem": {
     "lat": 51.9805211,
     "lon": 5.9124695
-  }
-  ,
+  },
   "Hamburg": {
     "lat": 53.551086,
     "lon": 9.993682
+  },
+  "Aalsmeer": {
+    "lat": 52.2669442,
+    "lon": 4.7493384
+  },
+  "Achterhoek": {
+    "lat": 52.22115,
+    "lon": 5.4088622
+  },
+  "Alblasserdam": {
+    "lat": 51.8599524,
+    "lon": 4.6662023
+  },
+  "Alkmaar": {
+    "lat": 52.6008538,
+    "lon": 4.8170994
+  },
+  "Amersfoort": {
+    "lat": 52.1562499,
+    "lon": 5.3896944
+  },
+  "Amsterdam-ZuidOost": {
+    "lat": 52.2996907,
+    "lon": 4.9474238
+  },
+  "Amsterdam-Zuidoost": {
+    "lat": 52.2996907,
+    "lon": 4.9474238
+  },
+  "Apeldoorn": {
+    "lat": 52.1795738,
+    "lon": 5.9300775
+  },
+  "Arnemuiden": {
+    "lat": 51.5000009,
+    "lon": 3.6762457
+  },
+  "Arnhem": {
+    "lat": 52.0056642,
+    "lon": 5.8762345
+  },
+  "Assen": {
+    "lat": 52.997225,
+    "lon": 6.5506458
+  },
+  "Assendelft": {
+    "lat": 52.4681109,
+    "lon": 4.7449605
+  },
+  "Baarle-Nassau": {
+    "lat": 51.4374696,
+    "lon": 4.8730747
+  },
+  "Baarn": {
+    "lat": 52.2111182,
+    "lon": 5.2931841
+  },
+  "Barchem": {
+    "lat": 52.1253892,
+    "lon": 6.4437256
+  },
+  "Barendrecht": {
+    "lat": 51.8566651,
+    "lon": 4.5368567
+  },
+  "Barneveld": {
+    "lat": 52.1715066,
+    "lon": 5.6454392
+  },
+  "Beekbergen": {
+    "lat": 52.1592697,
+    "lon": 5.9637625
+  },
+  "Beersel": {
+    "lat": 50.7477333,
+    "lon": 4.3065648
+  },
+  "Belfeld": {
+    "lat": 51.310963,
+    "lon": 6.1128183
+  },
+  "Bergen op Zoom": {
+    "lat": 51.4944756,
+    "lon": 4.2871541
+  },
+  "Berkel": {
+    "lat": 52.0537178,
+    "lon": 6.7806535
+  },
+  "Bilthoven": {
+    "lat": 52.1289693,
+    "lon": 5.2046134
+  },
+  "Bladel": {
+    "lat": 51.3712108,
+    "lon": 5.2346306
+  },
+  "Boskoop": {
+    "lat": 52.0742348,
+    "lon": 4.6631166
+  },
+  "Braamt": {
+    "lat": 51.9245379,
+    "lon": 6.2654688
+  },
+  "Broek": {
+    "lat": 52.9808767,
+    "lon": 5.7782551
+  },
+  "Bunschoten": {
+    "lat": 52.2391743,
+    "lon": 5.3734101
+  },
+  "Bunschoten-Spakenburg": {
+    "lat": 52.2452013,
+    "lon": 5.3731599
+  },
+  "Capelle": {
+    "lat": 50.2399715,
+    "lon": 3.5483955
+  },
+  "Carnisse": {
+    "lat": 51.8885121,
+    "lon": 4.4803006
+  },
+  "Delfgauw": {
+    "lat": 52.0095838,
+    "lon": 4.3956354
+  },
+  "Delft": {
+    "lat": 52.0114017,
+    "lon": 4.35839
+  },
+  "Den Bosch": {
+    "lat": 51.6889387,
+    "lon": 5.303116
+  },
+  "Den Helder": {
+    "lat": 52.9529894,
+    "lon": 4.8267592
+  },
+  "Deventer": {
+    "lat": 52.2694896,
+    "lon": 6.2364886
+  },
+  "Diemen": {
+    "lat": 52.3421489,
+    "lon": 4.960825
+  },
+  "Dinxperlo": {
+    "lat": 51.863757,
+    "lon": 6.4879872
+  },
+  "Doenrade": {
+    "lat": 50.9678901,
+    "lon": 5.9066669
+  },
+  "Doetinchem": {
+    "lat": 51.9585348,
+    "lon": 6.2814551
+  },
+  "Dongen": {
+    "lat": 51.6428928,
+    "lon": 4.957877
+  },
+  "Dongensekanaaldijk": {
+    "lat": 51.582343,
+    "lon": 5.0345339
+  },
+  "Doornspijk": {
+    "lat": 52.4194984,
+    "lon": 5.8208683
+  },
+  "Dordrecht": {
+    "lat": 51.814429,
+    "lon": 4.6692438
+  },
+  "Drachten": {
+    "lat": 53.1091111,
+    "lon": 6.0948102
+  },
+  "Drenthe": {
+    "lat": 52.9067922,
+    "lon": 6.6368423
+  },
+  "Duivendrecht": {
+    "lat": 52.3235787,
+    "lon": 4.9365267
+  },
+  "Dukenburg": {
+    "lat": 51.809016,
+    "lon": 5.8012705
+  },
+  "Dwarsland": {
+    "lat": 52.7361265,
+    "lon": 5.1779242
+  },
+  "Eemnes": {
+    "lat": 52.2534049,
+    "lon": 5.2598704
+  },
+  "Eerbeek": {
+    "lat": 52.1050018,
+    "lon": 6.0662773
+  },
+  "Eijsden": {
+    "lat": 50.7782686,
+    "lon": 5.7075337
+  },
+  "Elburg": {
+    "lat": 52.4156591,
+    "lon": 5.8413217
+  },
+  "Emmen": {
+    "lat": 52.7528662,
+    "lon": 6.9525135
+  },
+  "Enter": {
+    "lat": 52.2952203,
+    "lon": 6.5772427
+  },
+  "Etten-Leur": {
+    "lat": 51.5692065,
+    "lon": 4.6360813
+  },
+  "Gaanderen": {
+    "lat": 51.9308536,
+    "lon": 6.3483665
+  },
+  "Gebroek": {
+    "lat": 51.0948139,
+    "lon": 5.8719913
+  },
+  "Geertruidenberg": {
+    "lat": 51.6961662,
+    "lon": 4.8778438
+  },
+  "Gelderland": {
+    "lat": 52.1014041,
+    "lon": 5.9515701
+  },
+  "Geldrop": {
+    "lat": 51.4226684,
+    "lon": 5.5607546
+  },
+  "Gendringen": {
+    "lat": 51.8722058,
+    "lon": 6.3750059
+  },
+  "Gilze": {
+    "lat": 51.5416528,
+    "lon": 4.9443857
+  },
+  "Goes": {
+    "lat": 51.5031033,
+    "lon": 3.8897596
+  },
+  "Gooi": {
+    "lat": 52.2749051,
+    "lon": 5.1619521
+  },
+  "Gorinchem": {
+    "lat": 51.8296133,
+    "lon": 4.9738743
+  },
+  "Gouda": {
+    "lat": 52.0114922,
+    "lon": 4.7106094
+  },
+  "Haarlem": {
+    "lat": 52.3837058,
+    "lon": 4.6435597
+  },
+  "Halfweg": {
+    "lat": 52.3826063,
+    "lon": 4.7546903
+  },
+  "Halsteren": {
+    "lat": 51.5230234,
+    "lon": 4.2729507
+  },
+  "Harderwijk": {
+    "lat": 52.3490693,
+    "lon": 5.618933
+  },
+  "Hardinxveld-Giessendam": {
+    "lat": 51.8297356,
+    "lon": 4.8435197
+  },
+  "Hargen": {
+    "lat": 52.723007,
+    "lon": 4.659849
+  },
+  "Hazeldonk": {
+    "lat": 51.5024268,
+    "lon": 4.734977
+  },
+  "Heel": {
+    "lat": 51.179622,
+    "lon": 5.8947908
+  },
+  "Heemstede": {
+    "lat": 52.3427475,
+    "lon": 4.6180438
+  },
+  "Heenvliet": {
+    "lat": 51.8637036,
+    "lon": 4.2445237
+  },
+  "Heerhugowaard": {
+    "lat": 52.6631484,
+    "lon": 4.8326672
+  },
+  "Heerlen": {
+    "lat": 50.8876735,
+    "lon": 5.9773285
+  },
+  "Heerlerbaan": {
+    "lat": 50.8667552,
+    "lon": 5.9976693
+  },
+  "Heideweg": {
+    "lat": 50.6507398,
+    "lon": 7.3246952
+  },
+  "Heinkenszand": {
+    "lat": 51.4723969,
+    "lon": 3.8168553
+  },
+  "Hengeveld": {
+    "lat": 52.0985315,
+    "lon": 5.1389986
+  },
+  "Heythuysen": {
+    "lat": 51.2501987,
+    "lon": 5.9009266
+  },
+  "Hillegom": {
+    "lat": 52.2922753,
+    "lon": 4.5834571
+  },
+  "Hilvarenbeek": {
+    "lat": 51.486984,
+    "lon": 5.1469728
+  },
+  "Hoedekenskerke": {
+    "lat": 51.4248944,
+    "lon": 3.9142697
+  },
+  "Hoofddorp": {
+    "lat": 52.305554,
+    "lon": 4.6926644
+  },
+  "Hoogezand": {
+    "lat": 53.1638192,
+    "lon": 6.7556852
+  },
+  "Hoorn": {
+    "lat": 52.653272,
+    "lon": 5.0735802
+  },
+  "Ittervoort": {
+    "lat": 51.1703398,
+    "lon": 5.8228256
+  },
+  "Kampen": {
+    "lat": 52.5559484,
+    "lon": 5.9033303
+  },
+  "Kamperland": {
+    "lat": 51.5680028,
+    "lon": 3.7017099
+  },
+  "Kanaleneiland": {
+    "lat": 52.072106,
+    "lon": 5.0931383
+  },
+  "Kerkwijk": {
+    "lat": 51.7745473,
+    "lon": 5.2187988
+  },
+  "Knokke-Heist": {
+    "lat": 51.3433866,
+    "lon": 3.2884738
+  },
+  "Koudekerke": {
+    "lat": 51.4821967,
+    "lon": 3.5542879
+  },
+  "Krimpen": {
+    "lat": 51.914403,
+    "lon": 4.5887889
+  },
+  "Kruiningen": {
+    "lat": 51.4488064,
+    "lon": 4.0340991
+  },
+  "Laarbeek": {
+    "lat": 51.5322928,
+    "lon": 5.6126426
+  },
+  "Laren": {
+    "lat": 52.2425314,
+    "lon": 5.216244
+  },
+  "Leerdam": {
+    "lat": 51.8937356,
+    "lon": 5.0924352
+  },
+  "Leeuwarden": {
+    "lat": 53.2005936,
+    "lon": 5.7918548
+  },
+  "Leiden": {
+    "lat": 52.1594747,
+    "lon": 4.4908843
+  },
+  "Leidschendam": {
+    "lat": 52.0861654,
+    "lon": 4.3946774
+  },
+  "Leidschendam-Voorburg": {
+    "lat": 52.0926011,
+    "lon": 4.432125
+  },
+  "Lelystad": {
+    "lat": 52.536681,
+    "lon": 5.3610435
+  },
+  "Lienden": {
+    "lat": 51.9457517,
+    "lon": 5.5152908
+  },
+  "Lieren": {
+    "lat": 52.1618915,
+    "lon": 5.9877177
+  },
+  "Limburg": {
+    "lat": 51.2015196,
+    "lon": 5.9046302
+  },
+  "Lovensekanaaldijk": {
+    "lat": 51.5658893,
+    "lon": 5.1061184
+  },
+  "Maarssen": {
+    "lat": 52.1384846,
+    "lon": 5.040082
+  },
+  "Maasbracht": {
+    "lat": 51.1428567,
+    "lon": 5.8830683
+  },
+  "Maasbree": {
+    "lat": 51.3586733,
+    "lon": 6.047488
+  },
+  "Maasdijk": {
+    "lat": 51.9575497,
+    "lon": 4.2149056
+  },
+  "Meeden": {
+    "lat": 53.1387389,
+    "lon": 6.9282183
+  },
+  "Meers": {
+    "lat": 50.9628931,
+    "lon": 5.7413473
+  },
+  "Meijel": {
+    "lat": 51.3442546,
+    "lon": 5.8855232
+  },
+  "Melden": {
+    "lat": 50.8155547,
+    "lon": 3.5655354
+  },
+  "Meppel": {
+    "lat": 52.6938237,
+    "lon": 6.197767
+  },
+  "Middelburg": {
+    "lat": 51.4996784,
+    "lon": 3.6137371
+  },
+  "Midden-Nederland": {
+    "lat": 52.0829083,
+    "lon": 5.1347206
+  },
+  "Mijdrecht": {
+    "lat": 52.2060181,
+    "lon": 4.8648168
+  },
+  "Molenvliet": {
+    "lat": 52.0783781,
+    "lon": 4.863654
+  },
+  "Muntendam": {
+    "lat": 53.1351684,
+    "lon": 6.8706286
+  },
+  "Namen": {
+    "lat": 50.4665284,
+    "lon": 4.8661892
+  },
+  "Nieuw-Dordrecht": {
+    "lat": 52.7488866,
+    "lon": 6.9675691
+  },
+  "Nieuw-Roden": {
+    "lat": 53.1309475,
+    "lon": 6.3978463
+  },
+  "Nieuw-Vennep": {
+    "lat": 52.2646243,
+    "lon": 4.6340331
+  },
+  "Nieuw-West": {
+    "lat": 52.3584251,
+    "lon": 4.8061869
+  },
+  "Nijkerkerveen": {
+    "lat": 52.195727,
+    "lon": 5.4673875
+  },
+  "Nijmegen": {
+    "lat": 51.8474946,
+    "lon": 5.8637771
+  },
+  "Nijverdal": {
+    "lat": 52.3592015,
+    "lon": 6.4654075
+  },
+  "Nistelrode": {
+    "lat": 51.7046122,
+    "lon": 5.5614154
+  },
+  "Noardeast-Fryslân": {
+    "lat": 53.3681579,
+    "lon": 5.9389001
+  },
+  "Noord-Holland": {
+    "lat": 52.7212825,
+    "lon": 4.820665
+  },
+  "Noord-Nederland": {
+    "lat": 53.0942325,
+    "lon": 6.1453742
+  },
+  "Nuenen": {
+    "lat": 51.48603,
+    "lon": 5.544007
+  },
+  "Nunspeet": {
+    "lat": 52.3372909,
+    "lon": 5.7956364
+  },
+  "Oosterhout": {
+    "lat": 51.6322376,
+    "lon": 4.8630424
+  },
+  "Oud-Beijerland": {
+    "lat": 51.8214436,
+    "lon": 4.4164728
+  },
+  "Overvecht": {
+    "lat": 52.1205408,
+    "lon": 5.1096366
+  },
+  "Prinsenbeek": {
+    "lat": 51.6003459,
+    "lon": 4.718556
+  },
+  "Prinsenstraat": {
+    "lat": 51.8131583,
+    "lon": 4.6585214
+  },
+  "Rhoon": {
+    "lat": 51.8569948,
+    "lon": 4.4236815
+  },
+  "Riel": {
+    "lat": 51.4239089,
+    "lon": 5.5232365
+  },
+  "Rijen": {
+    "lat": 51.5879873,
+    "lon": 4.9194511
+  },
+  "Rijnsburg": {
+    "lat": 52.1893268,
+    "lon": 4.438952
+  },
+  "Rijsenhout": {
+    "lat": 52.2587713,
+    "lon": 4.7153681
+  },
+  "Rilland": {
+    "lat": 51.4164747,
+    "lon": 4.1812417
+  },
+  "Roermond": {
+    "lat": 51.1933903,
+    "lon": 5.9882649
+  },
+  "Rolde": {
+    "lat": 52.9843788,
+    "lon": 6.6487151
+  },
+  "Roosendaal": {
+    "lat": 51.5331484,
+    "lon": 4.4561276
+  },
+  "Roosteren": {
+    "lat": 51.082724,
+    "lon": 5.8166448
+  },
+  "Rozenburg": {
+    "lat": 51.9056445,
+    "lon": 4.2415465
+  },
+  "Sappemeer": {
+    "lat": 53.1642791,
+    "lon": 6.7960954
+  },
+  "Sassenheim": {
+    "lat": 49.5476008,
+    "lon": 5.9272714
+  },
+  "Schellingwoude": {
+    "lat": 52.3837449,
+    "lon": 4.9643217
+  },
+  "Schelluinen": {
+    "lat": 51.8457445,
+    "lon": 4.9243314
+  },
+  "Scherpenisse": {
+    "lat": 51.5465661,
+    "lon": 4.1066192
+  },
+  "Scheveningen": {
+    "lat": 52.1067449,
+    "lon": 4.2736937
+  },
+  "Schiedam": {
+    "lat": 51.91718,
+    "lon": 4.4019149
+  },
+  "Schiermonnikoog": {
+    "lat": 53.4782844,
+    "lon": 6.1610076
+  },
+  "Schijndel": {
+    "lat": 51.6176954,
+    "lon": 5.4362541
+  },
+  "Schiphol-Rijk": {
+    "lat": 52.2784339,
+    "lon": 4.7525241
+  },
+  "Serooskerke": {
+    "lat": 51.5498773,
+    "lon": 3.5959454
+  },
+  "Sint Jansteen": {
+    "lat": 51.2620302,
+    "lon": 4.0520276
+  },
+  "Sint Willebrord": {
+    "lat": 51.5510331,
+    "lon": 4.5907863
+  },
+  "Sint-Oedenrode": {
+    "lat": 51.5646434,
+    "lon": 5.4610004
+  },
+  "Sittard": {
+    "lat": 50.9974235,
+    "lon": 5.8666627
+  },
+  "Sittard-Geleen": {
+    "lat": 51.0094043,
+    "lon": 5.8376058
+  },
+  "Sliedrecht": {
+    "lat": 51.8250939,
+    "lon": 4.7741716
+  },
+  "Someren": {
+    "lat": 51.3863224,
+    "lon": 5.6888845
+  },
+  "Spijkenisse": {
+    "lat": 51.8464881,
+    "lon": 4.3287681
+  },
+  "Sprang-Capelle": {
+    "lat": 51.6705258,
+    "lon": 5.0252983
+  },
+  "Stramproy": {
+    "lat": 51.1932084,
+    "lon": 5.7235287
+  },
+  "Ter Apel": {
+    "lat": 52.8742433,
+    "lon": 7.0617746
+  },
+  "Teteringen": {
+    "lat": 51.6103716,
+    "lon": 4.8214856
+  },
+  "Tholen": {
+    "lat": 51.5708501,
+    "lon": 4.0761428
+  },
+  "Tiel": {
+    "lat": 51.8874333,
+    "lon": 5.4372681
+  },
+  "Tilburg": {
+    "lat": 51.5856184,
+    "lon": 5.0660616
+  },
+  "Uden": {
+    "lat": 51.6590888,
+    "lon": 5.6148605
+  },
+  "Udenhout": {
+    "lat": 51.6119112,
+    "lon": 5.1409062
+  },
+  "Ugchelen": {
+    "lat": 52.1845117,
+    "lon": 5.934748
+  },
+  "Uithoorn": {
+    "lat": 52.2440029,
+    "lon": 4.8281605
+  },
+  "Vaals": {
+    "lat": 50.7781016,
+    "lon": 5.9810696
+  },
+  "Valkenburg": {
+    "lat": 50.8647531,
+    "lon": 5.8312518
+  },
+  "Veghel": {
+    "lat": 51.6134636,
+    "lon": 5.5446455
+  },
+  "Venlo": {
+    "lat": 51.3924489,
+    "lon": 6.1511724
+  },
+  "Venray": {
+    "lat": 51.5082754,
+    "lon": 5.9589011
+  },
+  "Vlieland": {
+    "lat": 53.202995,
+    "lon": 4.9949134
+  },
+  "Vlissingen": {
+    "lat": 51.4943387,
+    "lon": 3.4150058
+  },
+  "Voorburg": {
+    "lat": 52.0703201,
+    "lon": 4.3558561
+  },
+  "Wassenaar": {
+    "lat": 52.1436114,
+    "lon": 4.3709668
+  },
+  "Weesp": {
+    "lat": 52.3072593,
+    "lon": 5.0420822
+  },
+  "Wernhout": {
+    "lat": 51.4540976,
+    "lon": 4.6420179
+  },
+  "West-Terschelling": {
+    "lat": 53.3613027,
+    "lon": 5.2160421
+  },
+  "Westhem": {
+    "lat": 53.0143343,
+    "lon": 5.5502434
+  },
+  "Willem-Alexanderplantsoen": {
+    "lat": 52.0549836,
+    "lon": 4.4851107
+  },
+  "Winschoten": {
+    "lat": 53.143001,
+    "lon": 7.0380717
+  },
+  "Wognum": {
+    "lat": 52.6810981,
+    "lon": 5.0247378
+  },
+  "Woudenberg": {
+    "lat": 52.0805478,
+    "lon": 5.4134327
+  },
+  "Wout": {
+    "lat": 51.588172,
+    "lon": 4.7735233
+  },
+  "Yerseke": {
+    "lat": 51.4935791,
+    "lon": 4.0452502
+  },
+  "Zaandam": {
+    "lat": 52.4424926,
+    "lon": 4.8298607
+  },
+  "Zandvoort": {
+    "lat": 52.3595223,
+    "lon": 4.5350259
+  },
+  "Zeeland": {
+    "lat": 51.4162975,
+    "lon": 3.7028061
+  },
+  "Zeewolde": {
+    "lat": 52.3451194,
+    "lon": 5.4580775
+  },
+  "Zeist": {
+    "lat": 52.0892832,
+    "lon": 5.2276307
+  },
+  "Zevenbergen": {
+    "lat": 51.6450443,
+    "lon": 4.6061538
+  },
+  "Zierikzee": {
+    "lat": 51.6497688,
+    "lon": 3.9208365
+  },
+  "Zoetermeer": {
+    "lat": 52.0622892,
+    "lon": 4.4877545
+  },
+  "Zutphen": {
+    "lat": 52.1396933,
+    "lon": 6.194772
+  },
+  "Zwanenburg": {
+    "lat": 52.3779288,
+    "lon": 4.7436402
+  },
+  "Zwolle": {
+    "lat": 52.5089759,
+    "lon": 6.0943765
+  },
+  "gemeente Aalten": {
+    "lat": 51.9272838,
+    "lon": 6.5812408
+  },
+  "gemeente Amersfoort": {
+    "lat": 52.1559333,
+    "lon": 5.3928021
+  },
+  "gemeente Borsele": {
+    "lat": 51.4538493,
+    "lon": 3.8546844
+  },
+  "gemeente Dantumadiel": {
+    "lat": 53.2326551,
+    "lon": 5.9852208
+  },
+  "gemeente Deventer": {
+    "lat": 52.2553604,
+    "lon": 6.1511801
+  },
+  "gemeente Groningen": {
+    "lat": 53.2139567,
+    "lon": 6.5650046
+  },
+  "gemeente Haarlem": {
+    "lat": 52.3820617,
+    "lon": 4.629491
+  },
+  "gemeente Haarlemmermeer": {
+    "lat": 52.3824698,
+    "lon": 4.7513649
+  },
+  "gemeente Heerlen": {
+    "lat": 50.8868193,
+    "lon": 5.9837338
+  },
+  "gemeente Helmond": {
+    "lat": 51.4838028,
+    "lon": 5.6706405
+  },
+  "gemeente Hoorn": {
+    "lat": 52.6396221,
+    "lon": 5.061711
+  },
+  "gemeente Roosendaal": {
+    "lat": 51.5158072,
+    "lon": 4.4755451
+  },
+  "gemeente Rotterdam": {
+    "lat": 51.9066182,
+    "lon": 4.488492
+  },
+  "gemeente Schagen": {
+    "lat": 52.8349164,
+    "lon": 4.6937212
+  },
+  "gemeente Soest": {
+    "lat": 52.188741,
+    "lon": 5.2814312
+  },
+  "gemeente Utrecht": {
+    "lat": 52.0892814,
+    "lon": 5.0242494
+  },
+  "gemeente Valkenburg": {
+    "lat": 50.8656598,
+    "lon": 5.8161063
+  },
+  "gemeente Veendam": {
+    "lat": 53.0917316,
+    "lon": 6.9071459
+  },
+  "gemeente Venlo": {
+    "lat": 51.2921943,
+    "lon": 6.1376565
+  },
+  "gemeente Zaanstad": {
+    "lat": 52.4886898,
+    "lon": 4.8019423
+  },
+  "gemeente Zuidplas": {
+    "lat": 52.0437697,
+    "lon": 4.5743326
+  },
+  "provincie Noord-Brabant": {
+    "lat": 51.6780921,
+    "lon": 5.3300249
+  },
+  "stelen": {
+    "lat": 51.1243097,
+    "lon": 4.9766236
   }
 }
