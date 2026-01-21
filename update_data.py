@@ -6,7 +6,6 @@ OUT_FILE = os.path.join(OUT_DIR, "latest.json")
 DASHBOARD_INPUT = os.path.join("keywords", "all_articles_keywords.json")
 
 
-
 def run(cmd):
     print("\n+", " ".join(cmd), flush=True)
     subprocess.run(cmd, check=True)
@@ -19,12 +18,15 @@ def ensure_json_ok(path):
     return data
 
 
-
-
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
+    run([
+        "powershell",
+        "-ExecutionPolicy", "Bypass",
+        "-File", "run_ingestion.ps1"
+    ])
 
-    run([sys.executable, "merge_jsons.py"])
+    # existing behavior stays unchanged
     run([sys.executable, "pre_process.py"])
 
     if not os.path.exists(DASHBOARD_INPUT):
@@ -33,7 +35,6 @@ def main():
     shutil.copyfile(DASHBOARD_INPUT, OUT_FILE)
     data = ensure_json_ok(OUT_FILE)
     print(f"\n Published {OUT_FILE} with {len(data)} records\n")
-
 
 
 if __name__ == "__main__":
