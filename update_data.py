@@ -20,11 +20,7 @@ def ensure_json_ok(path):
 
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
-    run([
-        "powershell",
-        "-ExecutionPolicy", "Bypass",
-        "-File", "run_ingestion.ps1"
-    ])
+    run([sys.executable, "run_ingestion.py"])
 
     # existing behavior stays unchanged
     run([sys.executable, "pre_process.py"])

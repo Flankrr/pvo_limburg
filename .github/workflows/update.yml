@@ -48,6 +48,8 @@ jobs:
             models/location_classifier_latest.pkl \
             cache/public/latest.json \
             preprocess_cache.json || true
+            data/refresh/rss_state.json \
+            data/refresh/seen_article_ids.json || true
 
           if git diff --cached --quiet; then
             echo "No changes"
