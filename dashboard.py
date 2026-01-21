@@ -831,9 +831,7 @@ try:
                 pub_str = r.get("published")
                 if pub_str:
                     try:
-                        pub_dt = robust_parse_date(pub_str)
-                        if not pd.isna(pub_dt) and pub_dt.tzinfo is not None:
-                            pub_dt = pub_dt.replace(tzinfo=None)
+                        pub_dt = pd.to_datetime(pub_str, errors="coerce", utc=True).tz_convert(None)
                         if not pd.isna(pub_dt):
                             age_txt = _days_ago(pub_dt)
                     except Exception:
