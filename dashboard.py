@@ -10,6 +10,7 @@ import altair as alt
 from sector_classifier import add_sector_classification
 from html import escape as _e
 import requests
+from dateutil.parser import parse
 
 
 
@@ -65,26 +66,23 @@ def _clamp_date_range(min_d: date, max_d: date, value):
     return (sd, ed)
 
 import datetime as dtmod
-from email.utils import parsedate_to_datetime
 
 def _normalize_published_to_utc_iso(published_value) -> str:
+    if published_value is None or (isinstance(published_value, float) and pd.isna(published_value)):
+        return ""
 
-        if published_value is None or (isinstance(published_value, float) and pd.isna(published_value)):
-            return ""
+    s = str(published_value).strip()
+    if not s:
+        return ""
 
-        s = str(published_value).strip()
-        if not s:
-            return ""
-
-        try:
-            d = parsedate_to_datetime(s)  # robust for RSS dates
-            if d.tzinfo is None:
-                d = d.replace(tzinfo=dtmod.timezone.utc)
-                d_utc = d.astimezone(dtmod.timezone.utc)
-                return d_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
-        except Exception:
-            return s
-
+    try:
+        dt = parse(s, fuzzy=True)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=dtmod.timezone.utc)
+        dt_utc = dt.astimezone(dtmod.timezone.utc)
+        return dt_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+    except Exception:
+        return s
 
 def _time_ago(ts: pd.Timestamp) -> str:
     if pd.isna(ts):
@@ -201,6 +199,7 @@ def divider():
 try:
     data = load_records()
     df = pd.json_normalize(data)
+
     # Normalize all published dates once so all timezones/strings are consistent
     if "published" in df.columns:
         df["published"] = df["published"].apply(_normalize_published_to_utc_iso)
@@ -225,11 +224,23 @@ try:
     #     default=df.columns.tolist()
     # )
 
+    def robust_parse_date(s):
+        if pd.isna(s):
+            return pd.NaT
+        try:
+            dt = parse(str(s), fuzzy=True)
+            # remove timezone info for consistency
+            if dt.tzinfo is not None:
+                dt = dt.replace(tzinfo=None)
+            return dt
+        except Exception:
+            return pd.NaT
+
 
     #session-state defaults, global options for reset/presets
     feed_options_all = df["feed"].dropna().unique().tolist() if "feed" in df.columns else []
     if "published" in df.columns:
-        _tmp_dates = pd.to_datetime(df["published"], errors="coerce")
+        _tmp_dates = df["published"].apply(robust_parse_date)
         _min_date = _tmp_dates.min().date() if _tmp_dates.notna().any() else datetime.today().date()
         _max_date = _tmp_dates.max().date() if _tmp_dates.notna().any() else datetime.today().date()
     else:
@@ -310,6 +321,7 @@ try:
         placeholder=''
     )
 
+ 
     filtered_df = df.copy()
     if query.strip():
         import shlex
@@ -365,8 +377,7 @@ try:
 
         filtered_df = filtered_df[mask]
 
-
-
+        
     # Feed filter
     if "feed" in df.columns:
         feed_options = sorted(df["feed"].dropna().unique().tolist())
@@ -387,7 +398,6 @@ try:
         filtered_df = filtered_df[filtered_df["feed"].isin(selected_feeds)]
 
 
-
     #SME probability threshold
     if "sme_probability" in filtered_df.columns:
         min_sme_prob = st.sidebar.slider(
@@ -396,6 +406,7 @@ try:
             help="Hide articles with SME probability below this threshold"
         )
         filtered_df = filtered_df[filtered_df["sme_probability"].fillna(0) >= min_sme_prob]
+
 
 
 
@@ -443,20 +454,21 @@ try:
     if selected_sectors:
         def _row_in_selected(row):
             #primary sector match
-            primary_ok = False
-            si = row.get("sector_info", {})
-            if isinstance(si, dict):
-                primary_ok = si.get("sector_code") in selected_sectors
-
-            #any match
-            any_ok = False
+            si = row.get("sector_info")
             codes = row.get("all_sectors_in_article", [])
-            if isinstance(codes, list):
-                any_ok = any(c in selected_sectors for c in codes)
 
-            return primary_ok or any_ok
+            primary_ok = isinstance(si, dict) and si.get("sector_code") in selected_sectors
+            any_ok = isinstance(codes, list) and any(c in selected_sectors for c in codes)
+
+            # keep if classified and matches OR if unclassified
+            unclassified = si is None or si == {} or not codes
+            return primary_ok or any_ok or unclassified
+        
+        
+
 
         filtered_df = filtered_df[filtered_df.apply(_row_in_selected, axis=1)]
+
 
 
 
@@ -481,8 +493,10 @@ try:
             )
         ]
 
+
+
     # -------------------------
-    # Date filter new
+    # Date filter 
     # -------------------------
     date_col = "published"
     if date_col in df.columns:
@@ -545,13 +559,18 @@ try:
 
         #filter
         #st.caption(f"DEBUG before date filter: {len(filtered_df)}")
-        tmp_dates = pd.to_datetime(filtered_df[date_col], errors="coerce")
-        filtered_df = filtered_df.loc[tmp_dates.notna()].copy()
-        tmp_dates = tmp_dates.loc[tmp_dates.notna()]
-        #st.caption(f"DEBUG published parsed: {int(tmp_dates.notna().sum())}/{len(tmp_dates)}")
+        # Robust parsing function
+       
+                
+
+        # Apply to your DataFrame
+        tmp_dates = filtered_df[date_col].apply(robust_parse_date)
+        # Optional: keep original column and store parsed dates
+        filtered_df['parsed_date'] = tmp_dates
+        # Filter by your selected date range
         filtered_df = filtered_df[
             (tmp_dates.dt.date >= start_date) & (tmp_dates.dt.date <= end_date)
-            ]
+        ]
 
     # -------------------------
     # Display filtered DataFrame
@@ -822,7 +841,9 @@ try:
                 pub_str = r.get("published")
                 if pub_str:
                     try:
-                        pub_dt = pd.to_datetime(pub_str, errors="coerce", utc=True).tz_convert(None)
+                        pub_dt = robust_parse_date(pub_str)
+                        if not pd.isna(pub_dt) and pub_dt.tzinfo is not None:
+                            pub_dt = pub_dt.replace(tzinfo=None)
                         if not pd.isna(pub_dt):
                             age_txt = _days_ago(pub_dt)
                     except Exception:
@@ -891,7 +912,11 @@ try:
     st.subheader("Spotlight")
     pretty = spotlight_df.copy()
 
-    pretty["published_dt"] = pd.to_datetime(pretty.get("published"), errors="coerce", utc=True).dt.tz_convert(None)
+    pretty["published_dt"] = pretty["published"].apply(robust_parse_date)
+
+    pretty["published_dt"] = pretty["published_dt"].apply(
+        lambda dt: dt.replace(tzinfo=None) if not pd.isna(dt) and dt.tzinfo is not None else dt
+        )
     pretty = pretty.rename(columns={"feed": "source"})
 
 
@@ -1129,7 +1154,7 @@ try:
             pub = row.get("published")
             if not pub:
                 continue
-            pub_date = pd.to_datetime(pub, errors="coerce")
+            pub_date = robust_parse_date(pub)
             if pd.isna(pub_date):
                 continue
             month_str = pub_date.strftime("%Y-%m")
